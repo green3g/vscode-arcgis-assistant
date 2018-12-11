@@ -1,12 +1,10 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import axios from 'axios';
-import * as qs from 'query-string';
-import * as FormData from 'form-data';
 
 import {token} from './token';
 
-function serialize(obj, prefix) {
+function serialize(obj :any , prefix : string) :string {
     let str = [];
     for (let p in obj) {
         if (obj.hasOwnProperty(p)) {
