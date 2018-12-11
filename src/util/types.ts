@@ -3,7 +3,8 @@ export enum ArcGISType {Portal, Folder, Item}
 export interface ArcGISItem {
     title: string;
     type: ArcGISType;
-    uri?: string;
+    uri: string;
     id?: string;
     portal?: ArcGISItem;
+    folder?: ArcGISItem;
 }

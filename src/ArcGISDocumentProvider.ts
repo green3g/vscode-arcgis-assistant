@@ -15,4 +15,5 @@ export class ArcGISDocumentProvider implements TextDocumentContentProvider {
     public provideTextDocumentContent(uri: Uri): ProviderResult<string> {
         return this.getArcGISItem(uri.path);
     }
+
 }

@@ -8,7 +8,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import axios from 'axios';
-import {parse} from 'query-string';
 
 export class File implements vscode.FileStat {
 
@@ -65,7 +64,8 @@ export class ArcGISFS implements vscode.FileSystemProvider {
 
     readDirectory(uri: vscode.Uri): Thenable<[string, vscode.FileType][]> {
         const url = uri.path.substring(1);
-        const params = parse(uri.query);
+        // const params = parse(uri.query);
+        const params = {username: '', token: ''};
         const endpoint = `https://${url}/sharing/rest/content/users/${params.username}?f=json&token=${params.token}`;
         return axios(endpoint).then((response:any) => {
             return response.data.folders.map((folder : any) => {
