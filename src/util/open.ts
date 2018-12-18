@@ -1,31 +1,33 @@
-import {workspace, window, commands} from 'vscode';
+import {workspace, window, commands, ExtensionContext} from 'vscode';
 import { ArcGISItem } from './types';
 import * as fs from 'fs';
 import axios from 'axios';
-import { token } from './token';
 import getWorkingDirectory from './getWorkingDirectory';
 import mkdirp = require('mkdirp');
 import * as path from 'path';
+import getAuthToken from './auth/oauth';
 
-function getArcGISItem(itemUrl: string): Thenable<string> {
-    itemUrl = itemUrl.replace('.json', '');
-    return axios.get(`${itemUrl}/data?f=json&token=${token}`).then(result => {
-        return JSON.stringify(result.data);
-    }).catch(e => {
-        throw e;
+function getArcGISItem(context : ExtensionContext, baseUrl : string, item : ArcGISItem): Promise<string> {
+    let url = `https://${baseUrl}/sharing/rest/content/items/${item.id}`;
+    url = url.replace('.json', '');
+    return getAuthToken(context, baseUrl).then(({token}) => {
+        return axios.get(`${url}/data?f=json&token=${token}`).then(result => {
+            return JSON.stringify(result.data);
+        }).catch(e => {
+            throw e;
+        });
     });
 }
 
-export default function(item :ArcGISItem){
+export default function(context: ExtensionContext, item :ArcGISItem){
     const portal = item.portal ? item.portal : item;
     const folder = item.folder ? path.join(portal.uri, item.folder.id || '') : portal.uri;
     const output = path.join(getWorkingDirectory(), folder);
     const [baseUrl] = portal.uri.split('/');
     mkdirp.sync(output);
-    const url = `https://${baseUrl}/sharing/rest/content/items/${item.id}`;
     const localPath = `${output}/${item.id}.json`;
 
-    getArcGISItem(url).then(data => {
+    getArcGISItem(context, baseUrl, item).then(data => {
         data = data.replace(/[\n\t]/, '');
         try {
             fs.writeFileSync(localPath, data,);
@@ -34,7 +36,9 @@ export default function(item :ArcGISItem){
         }
         return workspace.openTextDocument(localPath).then(doc => {
             window.showTextDocument(doc);
-            commands.executeCommand('editor.action.formatDocument', [doc]);
+            commands.executeCommand('editor.action.format');
         });
+    }).catch(e => {
+        console.warn(e);
     });
 }

@@ -1,10 +1,10 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import axios from 'axios';
+import {ExtensionContext} from 'vscode';
+import getAuthToken from './auth/oauth';
 
-import {token} from './token';
-
-function serialize(obj :any , prefix : string) :string {
+function serialize(obj :any , prefix? : string) :string {
     let str = [];
     for (let p in obj) {
         if (obj.hasOwnProperty(p)) {
@@ -19,7 +19,7 @@ function serialize(obj :any , prefix : string) :string {
 }
 
 
-export default function save(filePath : string){
+export default async function save(context : ExtensionContext, filePath : string){
     const parts = filePath.split(path.sep);
     let id  = parts.pop() || '';
     id = id.split('.')[0];
@@ -31,6 +31,7 @@ export default function save(filePath : string){
     const portal = parts.pop();
     const url = `https://${portal}/sharing/rest/content/users/${username}/${folder}/items/${id}/update`;
 
+    const {token} = await getAuthToken(context, portal);
     const payload = {
         text: JSON.stringify(json),
         f: 'json',
@@ -43,7 +44,7 @@ export default function save(filePath : string){
     }).catch(e => {
         console.warn(e);
     }).then(result => {
-        console.log(result);
+        console.log('Save Result: ', result);
     });
     
 }

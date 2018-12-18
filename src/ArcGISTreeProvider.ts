@@ -1,8 +1,8 @@
 import {Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState, TreeItem, ThemeIcon, ExtensionContext} from 'vscode';
 import axios from 'axios';
 import { ArcGISType, ArcGISItem } from './util/types';
-import { token } from './util/token';
 import * as path from 'path';
+import getAuthToken from './util/auth/oauth';
 
 const ICON_PATH = path.join('resources', 'icons');
 
@@ -60,8 +60,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 		this._onDidChangeTreeData.fire();
     }
 
-    public serialize() : string {
-        return this.portals.map(portal => portal.title).join(',');
+    public serialize() : string[] {
+        return this.portals.map(portal => portal.title);
     }
 
     public getTreeItem(element: ArcGISItem): TreeItem{
@@ -78,7 +78,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
 
         if(treeItem.command){
-            treeItem.command.arguments = [element];
+            treeItem.command.arguments = [this.context, element, this];
         }
         return treeItem;
     }
@@ -89,6 +89,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
         if(element.type === ArcGISType.Portal){
             const [portal, username] = element.uri.split('/');
+            const {token} = await getAuthToken(this.context, portal);
             return axios(`https://${portal}/sharing/rest/content/users/${username}?f=json&token=${token}`).then(response => {
                 return response.data.folders.map((folder : any) => {
                     return {
@@ -105,13 +106,14 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         if(element.type === ArcGISType.Folder){
             const query = `ownerfolder:${element.id}`;
             const portal = element.uri.split('/')[0];
+            const {token} = await getAuthToken(this.context, portal);
             return axios(`https://${portal}/sharing/rest/search?f=json&num=50&token=${token}&q=${query}`).then(response => {
                 return response.data.results.map((result:any) => {
                     return {
                         folder: element,
                         uri: element.uri,
                         id: result.id,
-                        title: result.title,
+                        title: `${result.title} (${result.type})`,
                         type: ArcGISType.Item,
                         portal: element.portal,
                     };
