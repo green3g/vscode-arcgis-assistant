@@ -38,6 +38,10 @@ export function activate(context: vscode.ExtensionContext) {
             prompt: 'URL To ArcGIS Online or Portal'
         }) || '';
 
+        if(!url){
+            return;
+        }
+
         // fetch token and profile details
         getAuthToken(context, url)
             .then(({token, profile}) => {

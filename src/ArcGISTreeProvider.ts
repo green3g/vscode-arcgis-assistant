@@ -60,6 +60,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 		this._onDidChangeTreeData.fire();
     }
 
+    public refreshItem(item :ArcGISItem){
+        this._onDidChangeTreeData.fire();
+    }
+
     public serialize() : string[] {
         return this.portals.map(portal => portal.title);
     }
@@ -91,6 +95,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             const [portal, username] = element.uri.split('/');
             const {token} = await getAuthToken(this.context, portal);
             return axios(`https://${portal}/sharing/rest/content/users/${username}?f=json&token=${token}`).then(response => {
+                if(response.data.error){
+                    throw new Error(response.data.error.message);
+                }
                 return response.data.folders.map((folder : any) => {
                     return {
                         id: folder.id,
@@ -108,6 +115,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             const portal = element.uri.split('/')[0];
             const {token} = await getAuthToken(this.context, portal);
             return axios(`https://${portal}/sharing/rest/search?f=json&num=50&token=${token}&q=${query}`).then(response => {
+                if(response.data.error){
+                    throw new Error(response.data.error.message);
+                }
                 return response.data.results.map((result:any) => {
                     return {
                         folder: element,

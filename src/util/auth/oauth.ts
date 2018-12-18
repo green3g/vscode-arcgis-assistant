@@ -7,9 +7,10 @@ import * as vscode from 'vscode';
 const PORT = 3000;
 const APPID = 'JYBrPM46vyNVTozY';
 const SECRET = '7820dfc5c3254f2b91a095db827a3556';
+const WORKSPACE = 'portal.authorizations';
 
 function updateTokenContext(context : vscode.ExtensionContext, authorizations : any){
-    context.workspaceState.update('portal.authorizations', authorizations);
+    context.workspaceState.update(WORKSPACE, authorizations);
 }
 
 passport.serializeUser(function(user, done) {
@@ -22,7 +23,7 @@ passport.serializeUser(function(user, done) {
     
 export default function getAuthToken(context: vscode.ExtensionContext, portalUrl : string = 'www.arcgis.com') : Promise<any>{
 
-    const authorizations : any = context.workspaceState.get('portal.authorizations') || {};
+    const authorizations : any = context.workspaceState.get(WORKSPACE) || {};
 
     if(authorizations[portalUrl] && authorizations[portalUrl].accessToken) {
         const profile = authorizations[portalUrl].profile;
