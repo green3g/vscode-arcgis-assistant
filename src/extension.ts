@@ -2,13 +2,13 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { ArcGISTreeProvider } from './ArcGISTreeProvider';
-import copy from './util/copy';
-import refresh from './util/refresh';
-import open from './util/open';
+import { ArcGISTreeProvider } from './lib/ArcGISTreeProvider';
+import copy from './lib/commands/copy';
+import refresh from './lib/commands/refresh';
+import open from './lib/commands/open';
 import getWorkingDirectory from './util/getWorkingDirectory';
-import save from './util/save';
-import getAuthToken from './util/auth/oauth';
+import save from './lib/commands/save';
+import PortalConnection from './lib/PortalConnection';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
         portals = [];
     }
 
-    const arcgisTreeProvider = new ArcGISTreeProvider(context, portals);
+    const arcgisTreeProvider = new ArcGISTreeProvider(context, []);
     
     vscode.window.registerTreeDataProvider('arcgisAssistant', arcgisTreeProvider);
     vscode.commands.registerCommand('arcgisAssistant.refreshEntry', refresh);
@@ -28,7 +28,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.commands.registerCommand('arcgisAssistant.removePortal', (item) => {
         arcgisTreeProvider.removePortal(item);
-        context.workspaceState.update('portals', arcgisTreeProvider.serialize());
     });
     vscode.commands.registerCommand('arcgisAssistant.addPortal', async () => {
 
@@ -41,18 +40,10 @@ export function activate(context: vscode.ExtensionContext) {
         if(!url){
             return;
         }
-
-        // fetch token and profile details
-        getAuthToken(context, url)
-            .then(({token, profile}) => {
-
-                // add portal
-                arcgisTreeProvider.addPortal(`${url}/${profile.username}`);
-                context.workspaceState.update('portals', arcgisTreeProvider.serialize());
-
-            }).catch(e => {
-                console.warn(e);
-            });
+        
+        arcgisTreeProvider.addPortal(new PortalConnection({
+            url,
+        }));
 
     });
 

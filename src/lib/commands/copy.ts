@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ArcGISType, ArcGISItem } from './types';
+import { ArcGISType, ArcGISItem } from '../ArcGISTreeProvider';
 import {copy} from 'copy-paste';
 
 export default function refresh(item : ArcGISItem){
@@ -7,7 +7,7 @@ export default function refresh(item : ArcGISItem){
     if(item.type === ArcGISType.Item || item.type === ArcGISType.Folder){
         prop = item.id || '';
     } else if(item.type === ArcGISType.Portal){
-        prop = item.uri || '';
+        prop = item.connection.url || '';
     }
 
     copy(prop, () => {

@@ -1,10 +1,19 @@
 import {Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState, TreeItem, ThemeIcon, ExtensionContext} from 'vscode';
-import axios from 'axios';
-import { ArcGISType, ArcGISItem } from './util/types';
 import * as path from 'path';
-import getAuthToken from './util/auth/oauth';
+import PortalConnection from './PortalConnection';
 
 const ICON_PATH = path.join('resources', 'icons');
+
+export enum ArcGISType {Portal, Folder, Item}
+
+export interface ArcGISItem {
+    title: string;
+    type: ArcGISType;
+    connection: PortalConnection;
+    id?: string;
+    portal?: ArcGISItem;
+    folder?: ArcGISItem;
+}
 
 const TREE_ITEM_MIXINS :any = {
     [ArcGISType.Item]: {
@@ -30,14 +39,14 @@ const TREE_ITEM_MIXINS :any = {
 export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 	private _onDidChangeTreeData: EventEmitter<any> = new EventEmitter<any>();
     readonly onDidChangeTreeData: Event<any> = this._onDidChangeTreeData.event;
+    private context : ExtensionContext;
     
     private portals : ArcGISItem[];
-    context : ExtensionContext;
-    constructor(context : ExtensionContext, portals : string[]){
+    constructor(context: ExtensionContext, portalConnections : PortalConnection[]){
         this.context = context;
-        this.portals = portals.map(str => ({
-            title: str,
-            uri: str,
+        this.portals = portalConnections.map(connection => ({
+            title: connection.url,
+            connection,
             type: ArcGISType.Portal,
         }));
     }
@@ -51,10 +60,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         this._onDidChangeTreeData.fire();
     }
 
-    public addPortal(portal : string){
+    public addPortal(connection : PortalConnection){
         this.portals.push({
-            title: portal,
-            uri: portal,
+            title: connection.url,
+            connection,
             type: ArcGISType.Portal,
         });
 		this._onDidChangeTreeData.fire();
@@ -62,10 +71,6 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
     public refreshItem(item :ArcGISItem){
         this._onDidChangeTreeData.fire();
-    }
-
-    public serialize() : string[] {
-        return this.portals.map(portal => portal.title);
     }
 
     public getTreeItem(element: ArcGISItem): TreeItem{
@@ -92,44 +97,40 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             return Promise.resolve(this.portals);
         }
         if(element.type === ArcGISType.Portal){
-            const [portal, username] = element.uri.split('/');
-            const {token} = await getAuthToken(this.context, portal);
-            return axios(`https://${portal}/sharing/rest/content/users/${username}?f=json&token=${token}`).then(response => {
-                if(response.data.error){
-                    throw new Error(response.data.error.message);
-                }
-                return response.data.folders.map((folder : any) => {
-                    return {
-                        id: folder.id,
-                        title: folder.title,
-                        type: ArcGISType.Folder,
-                        uri: element.uri,
-                        portal: element,
-                    };
-                });
-            });
+            const folders = await element.connection.getFolders();
+            const items = await element.connection.getItems();
+            return this.mapFolders(folders, element)
+                .concat(this.mapItems(items, element)); 
         }
 
         if(element.type === ArcGISType.Folder){
-            const query = `ownerfolder:${element.id}`;
-            const portal = element.uri.split('/')[0];
-            const {token} = await getAuthToken(this.context, portal);
-            return axios(`https://${portal}/sharing/rest/search?f=json&num=50&token=${token}&q=${query}`).then(response => {
-                if(response.data.error){
-                    throw new Error(response.data.error.message);
-                }
-                return response.data.results.map((result:any) => {
-                    return {
-                        folder: element,
-                        uri: element.uri,
-                        id: result.id,
-                        title: `${result.title} (${result.type})`,
-                        type: ArcGISType.Item,
-                        portal: element.portal,
-                    };
-                });
-            });
+            const results = await element.connection.getItems(element.id);
+            return this.mapItems(results, element);
         }
+
         return Promise.resolve([]);
+    }
+
+    private mapFolders(folders: any[], parent: ArcGISItem) : ArcGISItem[] {
+        return folders.map((folder) => {
+            return {
+                id: folder.id,
+                title: folder.title,
+                type: ArcGISType.Folder,
+                connection: parent.connection,
+            };
+        });
+    }
+
+    private mapItems(items : any, parent : ArcGISItem) : ArcGISItem[] {
+        return items.map((item:any) => {
+            return {
+                folder: parent,
+                id: item.id,
+                title: `${item.title} (${item.type})`,
+                type: ArcGISType.Item,
+                connection: parent.connection,
+            };
+        });
     }
 }

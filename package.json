@@ -3,6 +3,11 @@
     "displayName": "ArcGIS Assistant",
     "description": "A tool for modifying ArcGIS Enterprise and Online items",
     "version": "0.0.1",
+    "config": {
+        "PORT": 3000,
+        "APPID": "JYBrPM46vyNVTozY",
+        "SECRET": "7820dfc5c3254f2b91a095db827a3556"
+    },
     "engines": {
         "vscode": "^1.29.0"
     },
@@ -99,6 +104,7 @@
     },
     "dependencies": {
         "axios": "^0.18.0",
+        "can-param": "^1.1.1",
         "copy-paste": "^1.3.0",
         "express": "^4.16.4",
         "form-data": "^2.3.3",
