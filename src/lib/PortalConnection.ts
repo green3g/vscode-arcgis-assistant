@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {Memento} from 'vscode';
-import param from 'can-param';
+import * as param from 'can-param';
 import getAuthToken, { ITokenAuthentication, refreshAccessToken } from './auth/oauth';
 import serializeArcGISItem from './auth/serializeArcGISItem';
 
@@ -17,8 +17,9 @@ export interface IPortalOptions {
 const REST = 'sharing/rest';
 const CONTENT = `${REST}/content`;
 const USERS = `${CONTENT}/users`;
-const SEARCH = `${CONTENT}/search`;
 const ITEMS = `${CONTENT}/items`;
+
+let AUTH : ITokenAuthentication;
 
 
 export default class PortalConnection {
@@ -36,7 +37,6 @@ export default class PortalConnection {
     }
 
     public async getFolders() : Promise<any[]>{
-        const {url, username} = this;
         let token;
         try {
             token = await this.getAuthToken();
@@ -44,24 +44,23 @@ export default class PortalConnection {
             console.warn(e);
         }
         const params = this.getURLParameters({token});
-        const response = axios(`${this.protocol}://${url}/${USERS}/${username}?${params}`);
+        const response = await axios(`${this.protocol}://${this.url}/${USERS}/${this.username}?${params}`);
         return this.getResponse(response, 'folders');
     }
 
-    public async getItems(folderId? : string) : Promise<any[]>{
-        const q = folderId ? `ownerfolder:${folderId}` : null;
+    public async getItems(folderId : string = '') : Promise<any[]>{
         const portal = this.url;
         const token = await this.getAuthToken();
-        const params = this.getURLParameters({token, q});
-        const response = await axios(`${this.protocol}://${portal}/${SEARCH}?${params}`);
-        return this.getResponse(response, 'results');
+        const params = this.getURLParameters({token});
+        const response = await axios(`${this.protocol}://${portal}/${USERS}/${this.username}/${folderId}/?${params}`);
+        return this.getResponse(response, 'items');
     }
 
     
     public async getItem(item? : string): Promise<string> {
         const token = await this.getAuthToken();
         const params = this.getURLParameters({token});
-        const result = axios.get(`${this.protocol}://${this.url}/${ITEMS}/${item}/data?${params}`);
+        const result = await axios.get(`${this.protocol}://${this.url}/${ITEMS}/${item}/data?${params}`);
         return JSON.stringify(this.getResponse(result));
     }
 
@@ -92,7 +91,13 @@ export default class PortalConnection {
     }
 
     private async getAuthToken() : Promise<string>{
-        const authentication : ITokenAuthentication = await this.getAuthentication();
+        let authentication : ITokenAuthentication;
+        if(typeof AUTH !== 'undefined'){
+            authentication = AUTH;
+        } else {
+            authentication = AUTH = await this.getAuthentication();
+        }
+        this.username = authentication.profile.username;
         return authentication.accessToken;
     }
 
@@ -126,6 +131,7 @@ export default class PortalConnection {
 
     private getResponse(response : any, propertyName? : string){
         if(response.data.error){
+            console.warn(response.data.error);
             throw new Error(response.data.error.message);
         }
 
