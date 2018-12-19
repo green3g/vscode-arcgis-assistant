@@ -9,22 +9,24 @@ import open from './lib/commands/open';
 import getWorkingDirectory from './util/getWorkingDirectory';
 import save from './lib/commands/save';
 import PortalConnection from './lib/PortalConnection';
+import { MemFS } from './lib/fileSystemProvider';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
     
-    let portals : string[] = context.workspaceState.get('portals') || ['maps.arcgis.com'];
-    if(!Array.isArray(portals)){
-        portals = [];
-    }
-
-    const arcgisTreeProvider = new ArcGISTreeProvider(context, []);
+    const memFs = new MemFS();
+    context.subscriptions.push(vscode.workspace.registerFileSystemProvider('memfs', memFs, { 
+        isCaseSensitive: true 
+    }));
+    vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.parse('memfs:/'), name: "MemFS - ArcGIS" });
+    
+    const arcgisTreeProvider = new ArcGISTreeProvider(context, [], memFs);
     
     vscode.window.registerTreeDataProvider('arcgisAssistant', arcgisTreeProvider);
     vscode.commands.registerCommand('arcgisAssistant.refreshEntry', refresh);
     vscode.commands.registerCommand('arcgisAssistant.copy', copy);
-    vscode.commands.registerCommand('arcgisAssistant.open', open);
+    vscode.commands.registerCommand('arcgisAssistant.open', open, memFs);
 
     vscode.commands.registerCommand('arcgisAssistant.removePortal', (item) => {
         arcgisTreeProvider.removePortal(item);

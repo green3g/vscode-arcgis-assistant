@@ -1,4 +1,4 @@
-import {Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState, TreeItem, ThemeIcon, ExtensionContext} from 'vscode';
+import {Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState, TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider} from 'vscode';
 import * as path from 'path';
 import PortalConnection from './PortalConnection';
 
@@ -40,10 +40,12 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 	private _onDidChangeTreeData: EventEmitter<any> = new EventEmitter<any>();
     readonly onDidChangeTreeData: Event<any> = this._onDidChangeTreeData.event;
     private context : ExtensionContext;
+    private fs :FileSystemProvider;
     
     private portals : ArcGISItem[];
-    constructor(context: ExtensionContext, portalConnections : PortalConnection[]){
+    constructor(context: ExtensionContext, portalConnections : PortalConnection[], fs : FileSystemProvider){
         this.context = context;
+        this.fs = fs;
         this.portals = portalConnections.map(connection => ({
             title: connection.url,
             connection,
@@ -87,7 +89,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
 
         if(treeItem.command){
-            treeItem.command.arguments = [this.context, element, this];
+            treeItem.command.arguments = [element, this];
         }
         return treeItem;
     }
