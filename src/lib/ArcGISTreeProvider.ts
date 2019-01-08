@@ -1,4 +1,8 @@
-import {Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState, TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider} from 'vscode';
+import {
+    Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState, 
+    TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider,
+    window
+} from 'vscode';
 import * as path from 'path';
 import PortalConnection from './PortalConnection';
 
@@ -72,7 +76,12 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             }
 
             const content = fs.readFile(fileChangeEvent.uri).toString();
-            portal.connection.updateItem(itemId, folder, content);
+            window.showInformationMessage('Saving item...please wait.');
+            portal.connection.updateItem(itemId, folder, content).then(() => {
+                window.showInformationMessage('Item saved successfully!');
+            }).catch(e => {
+                window.showErrorMessage('The item could not be saved. Check to ensure your JSON is valid');
+            });
         });
     }
 

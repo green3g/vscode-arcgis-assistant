@@ -86,7 +86,7 @@ export default class PortalConnection {
             f: 'json',
             token,
         };
-        axios.post(url, serializeArcGISItem(payload), {
+        await axios.post(url, serializeArcGISItem(payload), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
