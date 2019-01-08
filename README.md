@@ -21,9 +21,16 @@ In order to perform editing, VSCode will download a copy of the ArcGIS Item JSOn
 
 See the [Releases Page](https://github.com/roemhildtg/vscode-arcgis-assistant/releases) for downloads.
 
-## Installing
+## Installing and Usage
 
 When you download the vsix file from the releases page, it can be installed by using the Extensions toolbar. See [Installing vsix files](https://code.visualstudio.com/docs/editor/extension-gallery#_install-from-a-vsix)
+
+Now when you open up vscode, you should see an ArcGIS pane in the explorer tab. (It will be towards the bottom). Hovering over this, will allow you to add a portal. You can also use the command `addPortal`. This will
+add the portal to the tree. You will be prompted to log in once you access the tree data, if your url is correct.
+
+Editing items can be done by clicking the item. If you double click it again, after its been opened, VSCode will automatically format the `json` document.
+
+After saving, the item will automatically upload to AGO. 
 
 ## Known Issues
 
