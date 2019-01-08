@@ -11,7 +11,6 @@ export interface ArcGISItem {
     type: ArcGISType;
     connection: PortalConnection;
     id?: string;
-    portal?: ArcGISItem;
     folder?: ArcGISItem;
 }
 
@@ -51,6 +50,30 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             connection,
             type: ArcGISType.Portal,
         }));
+
+        fs.onDidChangeFile(async (events) => {
+            const fileChangeEvent = events.filter(e => e.uri.path.indexOf('json') > -1)[0];
+            if(!fileChangeEvent){
+                return;
+            }
+
+            const parts = fileChangeEvent.uri.path.split('/');
+            const fileName = parts[parts.length - 1];
+            const itemId = fileName.split('.')[0];
+            const url = parts[1];
+            let folder = parts[parts.length - 2];
+            if(folder === url){
+                folder = '';
+            }
+
+            const portal = this.portals.filter(p => p.connection.url === url)[0];
+            if(!portal){
+                return;
+            }
+
+            const content = fs.readFile(fileChangeEvent.uri).toString();
+            portal.connection.updateItem(itemId, folder, content);
+        });
     }
 
     public removePortal(element : ArcGISItem){
