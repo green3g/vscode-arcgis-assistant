@@ -33,3 +33,9 @@ When you download the vsix file from the releases page, it can be installed by u
 ### 0.0.1
 
 Initial release with support for editing AGO/Portal document items.
+
+## Future Considerations
+
+ - Copy paste items (within and between portals)
+ - Create new items 
+ - Preview maps and layers in vscode web view
