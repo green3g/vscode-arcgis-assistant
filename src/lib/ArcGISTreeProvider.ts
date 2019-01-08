@@ -51,6 +51,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             connection,
             type: ArcGISType.Portal,
         }));
+
+        fs.onDidChangeFile((e) => {
+            console.log(e);
+        });
     }
 
     public removePortal(element : ArcGISItem){

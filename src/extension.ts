@@ -42,17 +42,10 @@ export function activate(context: vscode.ExtensionContext) {
         if(!url){
             return;
         }
-        
-        arcgisTreeProvider.addPortal(new PortalConnection({
-            url,
-        }));
+        const connection = new PortalConnection({url});
+        arcgisTreeProvider.addPortal(connection);
 
     });
-
-    let fileSystemWatcher = vscode.workspace.createFileSystemWatcher(`${getWorkingDirectory()}/**`, true, false, true);
-	context.subscriptions.push(fileSystemWatcher.onDidChange((filePath) => {
-        save(context, filePath.fsPath);
-    }));
 }
 
 // this method is called when your extension is deactivated
