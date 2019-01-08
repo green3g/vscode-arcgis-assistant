@@ -64,6 +64,13 @@ export default class PortalConnection {
         return JSON.stringify(this.getResponse(result));
     }
 
+    public async getItemMetadata(item? : string) : Promise<string>{
+        const token = await this.getAuthToken();
+        const params = this.getURLParameters({token});
+        const result = await axios.get(`${this.protocol}://${this.url}/${ITEMS}/${item}?${params}`);
+        return JSON.stringify(this.getResponse(result));
+    }
+
     public async updateItem(itemId: string, folderId: string, content : string){
         try {
             content = JSON.parse(content);

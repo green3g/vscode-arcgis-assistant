@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider('arcgisAssistant', arcgisTreeProvider);
     vscode.commands.registerCommand('arcgisAssistant.refreshEntry', refresh);
     vscode.commands.registerCommand('arcgisAssistant.copy', copy);
-    vscode.commands.registerCommand('arcgisAssistant.open', open, memFs);
+    vscode.commands.registerCommand('arcgisAssistant.open', open, {fs: memFs});
 
     vscode.commands.registerCommand('arcgisAssistant.removePortal', (item) => {
         arcgisTreeProvider.removePortal(item);
