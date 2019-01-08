@@ -2,6 +2,8 @@
 
 This is a highly experimental plugin for editing ArcGIS Portal and Online items in VS Code. Use at your own risk!
 
+![img](./docs/img/demo.gif)
+
 ## Features
 
  - Browse ArcGIS Online's folder hierarchy using a tree view built into VS Code.
