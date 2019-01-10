@@ -6,8 +6,6 @@ import { ArcGISTreeProvider } from './lib/ArcGISTreeProvider';
 import copy from './lib/commands/copy';
 import refresh from './lib/commands/refresh';
 import open from './lib/commands/open';
-import getWorkingDirectory from './util/getWorkingDirectory';
-import save from './lib/commands/save';
 import PortalConnection from './lib/PortalConnection';
 import { MemFS } from './lib/fileSystemProvider';
 
