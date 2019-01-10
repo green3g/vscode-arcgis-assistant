@@ -112,7 +112,7 @@
         "form-data": "^2.3.3",
         "mkdirp": "^0.5.1",
         "passport": "^0.4.0",
-        "passport-arcgis": "^0.1.8",
+        "passport-arcgis": "github:roemhildtg/passport-arcgis",
         "webpack-node-externals": "^1.7.2"
     }
 }
