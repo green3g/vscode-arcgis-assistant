@@ -2,6 +2,9 @@ import { ArcGISItem, ArcGISType } from '../ArcGISTreeProvider';
 import { Uri, workspace, window, commands} from 'vscode';
 
 export default async function(item :ArcGISItem, scope : any){
+    if(!item.id){
+        return;
+    }
     let data = await item.connection.getItem(item.id);
     if(!data){
         window.showInformationMessage(`${item.title} does not have any data to edit.`)

@@ -1,7 +1,3 @@
-import axios from 'axios';
-import {Memento} from 'vscode';
-import * as param from 'can-param';
-import serializeArcGISItem from './auth/serializeArcGISItem';
 import * as authenticate from 'arcgis-node-util/src/auth/oauth';
 import {searchUsers, searchItems, SearchQueryBuilder, ISearchOptions, getItemData, updateItem} from '@esri/arcgis-rest-portal';
 import {UserSession} from '@esri/arcgis-rest-auth';
@@ -18,10 +14,10 @@ export default class PortalConnection {
     portal: string = 'https://maps.arcgis.com'
     restEndpoint: string = 'sharing/rest';
     authentication!: UserSession;
-    params: ISearchOptions;
-    authenticationPromise: Promise<UserSession>;
+    params!: ISearchOptions;
+    authenticationPromise!: Promise<UserSession>;
 
-    public constructor(options : Object){
+    public constructor(options : any){
         Object.assign(this, {
             ...options,
             params: {
@@ -43,12 +39,12 @@ export default class PortalConnection {
         })
     }
 
-    public async getItems(params : ISearchOptions = {}){
+    public async getItems(params : any = {}){
         await this.authenticate();
         if(!params.q){
             const user = await this.authentication.getUser()
             params.q = new SearchQueryBuilder()
-                .match(user.orgId)
+                .match(user.orgId || '')
                 .in('orgid')
                 .and()
                 .match('root')
@@ -58,6 +54,7 @@ export default class PortalConnection {
                 .in('owner');
         }
         const query = {
+            num: 100,
             ...this.params,
             ...params,
             authentication: this.authentication,
@@ -90,14 +87,14 @@ export default class PortalConnection {
 
     }
 
-    public async getItem(itemId : string) : Promise<Object>{
+    public async getItem(itemId : string) : Promise<String>{
         return getItemData(itemId, {
             authentication: this.authentication,
             portal: this.restURL,
         }).then(data => JSON.stringify(data, null, 4));
     }
 
-    public async updateItem(itemId, data){
+    public async updateItem(itemId : string, data : any){
         return updateItem({
             item: {
                 id: itemId,

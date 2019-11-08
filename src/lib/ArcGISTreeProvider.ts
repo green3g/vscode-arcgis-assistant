@@ -171,7 +171,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
 
         if(element.type === ArcGISType.Folder){
-            const q = new SearchQueryBuilder().match(element.id).in('ownerfolder');
+            const q = new SearchQueryBuilder().match(element.id || '').in('ownerfolder');
             const results = await element.connection.getItems({q});
             return this.mapItems(results, element);
         }

@@ -7,7 +7,7 @@ export default function refresh(item : ArcGISItem){
     if(item.type === ArcGISType.Item || item.type === ArcGISType.Folder){
         prop = item.id || '';
     } else if(item.type === ArcGISType.Portal){
-        prop = item.connection.url || '';
+        prop = item.connection.portal || '';
     }
 
     copy(prop, () => {
