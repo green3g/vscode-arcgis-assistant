@@ -88,7 +88,7 @@
         "webpack": "webpack --mode development",
         "webpack:dev": "webpack --mode development --watch",
         "postinstall": "node ./node_modules/vscode/bin/install",
-        "vscode:prepublish": "npm run compile",
+        "vscode:prepublish": "npm run build",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
