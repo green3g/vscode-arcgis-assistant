@@ -3,7 +3,11 @@ import { Uri, workspace, window, commands} from 'vscode';
 
 export default async function(item :ArcGISItem, scope : any){
     let data = await item.connection.getItem(item.id);
-    const directory = `memfs:/${item.connection.url}`;
+    if(!data){
+        window.showInformationMessage(`${item.title} does not have any data to edit.`)
+        return;
+    }
+    const directory = `memfs:/${item.connection.portalName}`;
     const folder = item.folder && item.folder.type === ArcGISType.Folder ? 
         item.folder.id : undefined;
     const path = folder ? `${directory}/${folder}/${item.id}.json`

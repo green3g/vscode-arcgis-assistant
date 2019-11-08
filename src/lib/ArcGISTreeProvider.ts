@@ -5,6 +5,7 @@ import {
 } from 'vscode';
 import * as path from 'path';
 import PortalConnection from './PortalConnection';
+import { SearchQueryBuilder } from '@esri/arcgis-rest-portal';
 
 const ICON_PATH = path.join('resources', 'icons');
 
@@ -50,11 +51,12 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         this.context = context;
         this.fs = fs;
         this.portals = portalConnections.map(connection => ({
-            title: connection.url,
+            title: connection.portal,
             connection,
             type: ArcGISType.Portal,
         }));
 
+        
         fs.onDidChangeFile(async (events) => {
             const fileChangeEvent = events.filter(e => e.uri.path.indexOf('json') > -1)[0];
             if(!fileChangeEvent){
@@ -70,14 +72,27 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 folder = '';
             }
 
-            const portal = this.portals.filter(p => p.connection.url === url)[0];
+            const portal = this.portals.filter(p => p.connection.portalName === url)[0];
             if(!portal){
                 return;
             }
 
+            const portalContent = await portal.connection.getItem(itemId);
             const content = fs.readFile(fileChangeEvent.uri).toString();
+            if(portalContent === content){
+                return;
+            }
+
+            const result = await window.showInformationMessage(`You've made some changes. 
+                Do you want to upload ${itemId} to your portal?`, 'Yes', 'Not Yet');
+
+            if(result !== 'Yes'){
+                return;
+            }
+
+
             window.showInformationMessage('Saving item...please wait.');
-            portal.connection.updateItem(itemId, folder, content).then(() => {
+            portal.connection.updateItem(itemId, content).then(() => {
                 window.showInformationMessage('Item saved successfully!');
             }).catch(e => {
                 window.showErrorMessage('The item could not be saved. Check to ensure your JSON is valid');
@@ -85,6 +100,33 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         });
     }
 
+
+    public async addPortal(){
+        // get url from user
+        let url : string = await window.showInputBox({
+            placeHolder: 'organization.maps.arcgis.com | webadaptor.website.com/portal',
+            prompt: 'URL To ArcGIS Online or Portal',
+            value: 'https://maps.arcgis.com',
+        }) || '';
+    
+        if(!url){
+            return;
+        }
+
+        // standardize url 
+        url = url.replace(/(https?:\/\/|\/?rest\/sharing)/g, '');
+        url = `https://${url}`;
+
+        const connection = new PortalConnection({portal: url});
+
+        this.portals.push({
+            title: connection.portal,
+            connection,
+            type: ArcGISType.Portal,
+        });
+		this._onDidChangeTreeData.fire();
+    }
+    
     public removePortal(element : ArcGISItem){
         const index = this.portals.indexOf(element);
         if(index > -1){
@@ -92,15 +134,6 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
 
         this._onDidChangeTreeData.fire();
-    }
-
-    public addPortal(connection : PortalConnection){
-        this.portals.push({
-            title: connection.url,
-            connection,
-            type: ArcGISType.Portal,
-        });
-		this._onDidChangeTreeData.fire();
     }
 
     public refreshItem(item :ArcGISItem){
@@ -138,7 +171,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
 
         if(element.type === ArcGISType.Folder){
-            const results = await element.connection.getItems(element.id);
+            const q = new SearchQueryBuilder().match(element.id).in('ownerfolder');
+            const results = await element.connection.getItems({q});
             return this.mapItems(results, element);
         }
 

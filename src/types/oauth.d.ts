@@ -1,0 +1,1 @@
+declare module 'arcgis-node-util/src/auth/oauth';

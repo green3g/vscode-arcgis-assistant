@@ -1,155 +1,127 @@
 import axios from 'axios';
 import {Memento} from 'vscode';
 import * as param from 'can-param';
-import getAuthToken, { ITokenAuthentication, refreshAccessToken } from './auth/oauth';
 import serializeArcGISItem from './auth/serializeArcGISItem';
+import * as authenticate from 'arcgis-node-util/src/auth/oauth';
+import {searchUsers, searchItems, SearchQueryBuilder, ISearchOptions, getItemData, updateItem} from '@esri/arcgis-rest-portal';
+import {UserSession} from '@esri/arcgis-rest-auth';
+import { request } from '@esri/arcgis-rest-request';
 
 const DEFAULT_PARAMS = {
-    f: 'json',
-    num: 50,
+        start: 1,
+        num: 100,    
 };
 
-export interface IPortalOptions {
-    url: string;
-    protocol? : string;
-}
-
-const REST = 'sharing/rest';
-const CONTENT = `${REST}/content`;
-const USERS = `${CONTENT}/users`;
-const ITEMS = `${CONTENT}/items`;
-
-let AUTH : ITokenAuthentication;
-
+const APPID = 'JYBrPM46vyNVTozY';
 
 export default class PortalConnection {
-    url : string = 'maps.arcgis.com';
-    protocol : string = 'https';
-    username! : string;
-    store! : Memento;
-    folderEndpoint : string = 'sharing/rest/content/users';
-    searchEndpoint : string = 'sharing/rest/search';
-    itemEndpoint : string = 'sharing/rest/content/items';
+    portal: string = 'https://maps.arcgis.com'
+    restEndpoint: string = 'sharing/rest';
+    authentication!: UserSession;
+    params: ISearchOptions;
+    authenticationPromise: Promise<UserSession>;
 
-
-    public constructor(args : IPortalOptions){
-        Object.assign(this, args);
+    public constructor(options : Object){
+        Object.assign(this, {
+            ...options,
+            params: {
+                ...DEFAULT_PARAMS,
+                ...options.params,
+            }
+        });
     }
 
-    public async getFolders() : Promise<any[]>{
-        let token;
-        try {
-            token = await this.getAuthToken();
-        } catch(e){
-            console.warn(e);
-        }
-        const params = this.getURLParameters({token});
-        const response = await axios(`${this.protocol}://${this.url}/${USERS}/${this.username}?${params}`);
-        return this.getResponse(response, 'folders');
-    }
-
-    public async getItems(folderId : string = '') : Promise<any[]>{
-        const portal = this.url;
-        const token = await this.getAuthToken();
-        const params = this.getURLParameters({token});
-        const response = await axios(`${this.protocol}://${portal}/${USERS}/${this.username}/${folderId}/?${params}`);
-        return this.getResponse(response, 'items');
-    }
 
     
-    public async getItem(item? : string): Promise<string> {
-        const token = await this.getAuthToken();
-        const params = this.getURLParameters({token});
-        const result = await axios.get(`${this.protocol}://${this.url}/${ITEMS}/${item}/data?${params}`);
-        return JSON.stringify(this.getResponse(result));
+    public async getFolders() : Promise<any[]>{
+        await this.authenticate();
+        return request(`${this.restURL}/content/users/${this.authentication.username}`, {
+            authentication: this.authentication,
+            portal: this.restURL,
+        }).then(result => {
+            return result.folders;
+        })
     }
 
-    public async getItemMetadata(item? : string) : Promise<string>{
-        const token = await this.getAuthToken();
-        const params = this.getURLParameters({token});
-        const result = await axios.get(`${this.protocol}://${this.url}/${ITEMS}/${item}?${params}`);
-        return JSON.stringify(this.getResponse(result));
-    }
-
-    public async updateItem(itemId: string, folderId: string, content : string){
-        try {
-            content = JSON.parse(content);
-        } catch(e){
-            console.warn(e);
-            throw new Error('Item contained invalid JSON');
+    public async getItems(params : ISearchOptions = {}){
+        await this.authenticate();
+        if(!params.q){
+            const user = await this.authentication.getUser()
+            params.q = new SearchQueryBuilder()
+                .match(user.orgId)
+                .in('orgid')
+                .and()
+                .match('root')
+                .in('ownerfolder')
+                .and()
+                .match(this.authentication.username)
+                .in('owner');
         }
-        const url = `${this.protocol}://${this.url}/${USERS}/${this.username}/${folderId}/items/${itemId}/update`;
-
-        const token = await this.getAuthToken();
-        const payload = {
-            text: JSON.stringify(content),
-            f: 'json',
-            token,
+        const query = {
+            ...this.params,
+            ...params,
+            authentication: this.authentication,
+            portal: this.restURL,
         };
-        await axios.post(url, serializeArcGISItem(payload), {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-        }).catch(e => {
-            console.warn(e);
-            throw new Error('Item could not be saved.');
+    
+        const {total} = await searchItems({
+            ...query,
+            num: 0,
         });
     
+        const pages = Math.round(total / query.num);
+        const promises = [];
+        for (let i = 0; i <= pages; i ++) {
+            promises.push(searchItems({
+                ...query,
+                start: 1 + (i * query.num),
+            }).catch((e) => {
+                console.log(`Error while searching items. \n ${e} \n`, query);
+                return {};
+            }));
+        }
+    
+        return await Promise.all(promises).then((results) => {
+            return results.reduce((previous, current) => {
+                const features = current.results || [];
+                return previous.results.concat(features);
+            }, {results: []});
+        });
+
     }
 
-    private async getAuthToken() : Promise<string>{
-        let authentication : ITokenAuthentication;
-        if(typeof AUTH !== 'undefined'){
-            authentication = AUTH;
-        } else {
-            authentication = AUTH = await this.getAuthentication();
-        }
-        this.username = authentication.profile.username;
-        return authentication.accessToken;
+    public async getItem(itemId : string) : Promise<Object>{
+        return getItemData(itemId, {
+            authentication: this.authentication,
+            portal: this.restURL,
+        }).then(data => JSON.stringify(data, null, 4));
     }
 
-    private async getAuthentication() : Promise<ITokenAuthentication> {
-        const authentication : ITokenAuthentication = await getAuthToken(this.url);
-        try {
-            this.verifyAccessToken(authentication.accessToken);
-        } catch(e){
-            const result = await refreshAccessToken(this.url, authentication.refreshToken);
-            if(result.data.error){
-                throw new Error(result.data.error.message);
-            }
-            authentication.accessToken = result.data.accessToken;
-        }
-        return authentication;
+    public async updateItem(itemId, data){
+        return updateItem({
+            item: {
+                id: itemId,
+                text: typeof data !== 'string' ? JSON.stringify(data) : data,
+            },
+            portal: this.restURL,
+            authentication: this.authentication, 
+        })
     }
 
-    private async verifyAccessToken(token : string) : Promise<Boolean>{
-        const params = this.getURLParameters({token});
-        const result = await axios(`${this.protocol}://${this.url}/${REST}?${params}`);
-        if(result.data.error){
-            throw new Error(result.data.error.message);
+    private authenticate() : Promise<UserSession>{
+        if(typeof this.authentication === 'undefined'){
+            this.authenticationPromise = authenticate({
+                appId: APPID,
+                portalUrl: this.portal,
+            });
         }
-        return true;
+        return this.authenticationPromise.then(result => this.authentication = result);
     }
 
-    private getURLParameters(mixins : any) : string {
-        const params = Object.assign({}, DEFAULT_PARAMS, mixins);
-        return param(params);
+    get portalName(){
+        return this.portal.replace(/(https?|[/:])*/, '');
     }
-
-    private getResponse(response : any, propertyName? : string){
-        if(response.data.error){
-            console.warn(response.data.error);
-            throw new Error(response.data.error.message);
-        }
-
-        if(!propertyName){
-            return response.data;
-        }
-        
-        if(!response.data[propertyName]){
-            throw new Error(`Could not find ${propertyName}`);
-        }
-
-        return response.data[propertyName];
+    get restURL(){
+        return `${this.portal}/${this.restEndpoint}`;
     }
 }

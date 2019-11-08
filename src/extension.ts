@@ -22,28 +22,12 @@ export function activate(context: vscode.ExtensionContext) {
     const arcgisTreeProvider = new ArcGISTreeProvider(context, [], memFs);
     
     vscode.window.registerTreeDataProvider('arcgisAssistant', arcgisTreeProvider);
-    vscode.commands.registerCommand('arcgisAssistant.refreshEntry', refresh);
+    vscode.commands.registerCommand('arcgisAssistant.refreshEntry', (item) => arcgisTreeProvider.refreshItem(item));
     vscode.commands.registerCommand('arcgisAssistant.copy', copy);
     vscode.commands.registerCommand('arcgisAssistant.open', open, {fs: memFs});
 
-    vscode.commands.registerCommand('arcgisAssistant.removePortal', (item) => {
-        arcgisTreeProvider.removePortal(item);
-    });
-    vscode.commands.registerCommand('arcgisAssistant.addPortal', async () => {
-
-        // get url from user
-        const url : string = await vscode.window.showInputBox({
-            placeHolder: 'organization.maps.arcgis.com | webadaptor.website.com/portal',
-            prompt: 'URL To ArcGIS Online or Portal'
-        }) || '';
-
-        if(!url){
-            return;
-        }
-        const connection = new PortalConnection({url});
-        arcgisTreeProvider.addPortal(connection);
-
-    });
+    vscode.commands.registerCommand('arcgisAssistant.removePortal',  (item) => arcgisTreeProvider.removePortal(item));
+    vscode.commands.registerCommand('arcgisAssistant.addPortal', () => arcgisTreeProvider.addPortal());
 }
 
 // this method is called when your extension is deactivated

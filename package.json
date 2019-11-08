@@ -31,7 +31,7 @@
         },
         "commands": [
             {
-                "command": "arcgisAssistant.refresh",
+                "command": "arcgisAssistant.refreshEntry",
                 "title": "Refresh",
                 "icon": {
                     "light": "resources/light/refresh.svg",
@@ -52,7 +52,7 @@
             },
             {
                 "command": "arcgisAssistant.open",
-                "title": "Copy"
+                "title": "Open"
             },
             {
                 "command": "arcgisAssistant.removePortal",
@@ -70,7 +70,7 @@
             ],
             "view/item/context": [
                 {
-                    "command": "arcgisAssistant.refresh",
+                    "command": "arcgisAssistant.refreshEntry",
                     "when": "view == arcgisAssistant"
                 },
                 {
@@ -87,7 +87,11 @@
         "build": "webpack --mode production",
         "webpack": "webpack --mode development",
         "webpack:dev": "webpack --mode development --watch",
-        "postinstall": "node ./node_modules/vscode/bin/install"
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "devDependencies": {
         "@types/axios": "^0.14.0",
@@ -98,13 +102,15 @@
         "@types/node": "^8.10.25",
         "@types/passport": "^0.4.7",
         "ts-loader": "^5.3.1",
-        "tslint": "^5.8.0",
+        "tslint": "^5.20.1",
         "typescript": "^3.1.4",
         "vscode": "^1.1.21",
         "webpack": "^4.27.1",
         "webpack-cli": "^3.1.2"
     },
     "dependencies": {
+        "@esri/arcgis-rest-portal": "^2.6.0",
+        "arcgis-node-util": "1.0.1",
         "axios": "^0.18.0",
         "can-param": "^1.1.1",
         "copy-paste": "^1.3.0",
