@@ -170,11 +170,13 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     // Commands methods
     ///////////////////////////////////////////////////////////////////////////////////
     public async copyItem(item : ArcGISItem){
-        let prop  : string = '';
-        if(item.type === ArcGISType.Item || item.type === ArcGISType.Folder){
-            prop = item.id || '';
-        } else if(item.type === ArcGISType.Portal){
-            prop = item.connection.portal || '';
+        if(item.type === ArcGISType.Portal){
+            window.showInformationMessage('Copying a portal is not yet supported');
+            return;
+        }
+        if(item.type === ArcGISType.Folder){
+            window.showInformationMessage('Copying a folder is not yet supported');
+            return;
         }
 
 
@@ -183,7 +185,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             callback: () => {
                 return item.connection.getItem(item.id).then(result => {
                     return new Promise(resolve => {
-                        copy(JSON.stringify(result), resolve);
+                        copy(JSON.stringify({
+                            ...result,
+                            type: item.type,
+                        }), resolve);
                     });
                 });
             },
@@ -206,7 +211,12 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         });
         const folderId = treeItem.type === ArcGISType.Folder ? treeItem.id : undefined;
         const portal = treeItem.connection;
-        const {data, item} = JSON.parse(pasteData);
+        const {data, item, type} = JSON.parse(pasteData);
+
+        if(type !== ArcGISType.Item){
+            window.showWarningMessage('This item cannot be pasted here.');
+            console.warn('Invalid paste type: pasteData');
+        }
 
         delete item.ownerFolder;
         delete item.owner;
