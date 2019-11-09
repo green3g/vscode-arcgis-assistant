@@ -18,6 +18,13 @@ export interface PortalItemData {
     data: string;
 }
 
+export interface PortalOptions {
+    portal: string;
+    restEndpoint?: string;
+    params?: ISearchOptions;
+    authentication?: UserSession;
+}
+
 export default class PortalConnection {
     portal: string = 'https://maps.arcgis.com';
     restEndpoint: string = 'sharing/rest';
@@ -25,7 +32,7 @@ export default class PortalConnection {
     params!: ISearchOptions;
     authenticationPromise!: Promise<UserSession>;
 
-    public constructor(options : any){
+    public constructor(options : PortalOptions){
         Object.assign(this, {
             ...options,
             params: {
@@ -139,12 +146,23 @@ export default class PortalConnection {
 
     private authenticate() : Promise<UserSession>{
         if(typeof this.authentication === 'undefined'){
-            this.authenticationPromise = authenticate({
-                appId: APPID,
-                portalUrl: this.portal,
+            this.authenticationPromise = new Promise((resolve, reject) => {
+                authenticate({
+                    appId: APPID,
+                    portalUrl: this.portal,
+                }).then(resolve);
+                setTimeout(() => {
+                    reject(new Error('Timeout Exceeded'));
+                }, 1000 * 120);
             });
         }
-        return this.authenticationPromise.then(result => this.authentication = result);
+        return this.authenticationPromise
+            .then(result => this.authentication = result)
+            .catch(e => {
+                console.error(e);
+                delete this.authenticationPromise;
+                return this.authenticate();
+            });
     }
 
     get portalName(){

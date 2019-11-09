@@ -169,7 +169,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     ///////////////////////////////////////////////////////////////////////////////////
     // Commands methods
     ///////////////////////////////////////////////////////////////////////////////////
-    public copyItem(item : ArcGISItem){
+    public async copyItem(item : ArcGISItem){
         let prop  : string = '';
         if(item.type === ArcGISType.Item || item.type === ArcGISType.Folder){
             prop = item.id || '';
@@ -177,8 +177,17 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             prop = item.connection.portal || '';
         }
 
-        copy(prop, () => {
-            window.showInformationMessage('Success! Item was copied to the clipboard');
+
+        showUserMessages({
+            pendingMessage: 'Fetching item, please wait...',
+            callback: () => {
+                return item.connection.getItem(item.id).then(result => {
+                    return new Promise(resolve => {
+                        copy(JSON.stringify(result), resolve);
+                    });
+                });
+            },
+            successMessage: 'Success! Item data was copied to the clipboard'
         });
     }
 
@@ -197,7 +206,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         });
         const folderId = treeItem.type === ArcGISType.Folder ? treeItem.id : undefined;
         const portal = treeItem.connection;
-        const {data, item} = await portal.getItem(pasteData);
+        const {data, item} = JSON.parse(pasteData);
+
+        delete item.ownerFolder;
+        delete item.owner;
 
         showUserMessages({
             callback: () => portal.createItem(item, data, folderId),
@@ -261,6 +273,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     }
 
     public async deleteItem(item : ArcGISItem){
+        if(!item){
+            return;
+        }
         if(item.type === ArcGISType.Folder){
             window.showErrorMessage(`You cannot delete folders yet.`);
             return;
@@ -270,6 +285,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             if(index > -1){
                 this.portals.splice(index, 1);
             }
+            this.refreshItem(item);
             return;
         }
 
