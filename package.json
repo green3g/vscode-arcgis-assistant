@@ -10,16 +10,16 @@
         "APPID": "JYBrPM46vyNVTozY",
         "SECRET": "7820dfc5c3254f2b91a095db827a3556"
     },
-    "engines": {
-        "vscode": "^1.34.0"
-    },
+	"engines": {
+		"vscode": "^1.40.0"
+	},
     "categories": [
         "Other"
     ],
     "activationEvents": [
         "onView:arcgisAssistant"
     ],
-    "main": "./dist/extension",
+    "main": "./out/extension.js",
     "contributes": {
         "views": {
             "explorer": [
@@ -51,6 +51,10 @@
                 "title": "Copy"
             },
             {
+                "command": "arcgisAssistant.paste",
+                "title": "Paste"
+            },
+            {
                 "command": "arcgisAssistant.open",
                 "title": "Open"
             },
@@ -79,19 +83,20 @@
                 },
                 {
                     "command": "arcgisAssistant.copy"
+                },
+                {
+                    "command": "arcgisAssistant.paste"
                 }
             ]
         }
     },
-    "scripts": {
-        "build": "webpack --mode production",
-        "webpack": "webpack --mode development",
-        "webpack:dev": "webpack --mode development --watch",
-        "vscode:prepublish": "npm run build",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "test": "npm run compile && node ./node_modules/vscode/bin/test"
-    },
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile",
+		"test": "node ./out/test/runTest.js"
+	},
     "devDependencies": {
         "@types/copy-paste": "^1.1.30",
         "@types/jest": "^24.0.22",
@@ -100,6 +105,7 @@
         "ts-loader": "^5.3.1",
         "tslint": "^5.20.1",
         "typescript": "^3.7.2",
+        "vscode-test": "^1.2.3",
         "webpack": "^4.27.1",
         "webpack-cli": "^3.1.2"
     },
