@@ -1,7 +1,7 @@
 import * as authenticate from 'arcgis-node-util/src/auth/oauth';
 import {
     searchItems, SearchQueryBuilder, ISearchOptions,
-    IItem, getItem,getItemData, updateItem, createItem, IItemAdd,
+    IItem, getItem,getItemData, updateItem, createItem, IItemAdd, removeItem,
 } from '@esri/arcgis-rest-portal';
 import {UserSession} from '@esri/arcgis-rest-auth';
 import { request } from '@esri/arcgis-rest-request';
@@ -108,10 +108,10 @@ export default class PortalConnection {
         return {item, data: itemData};
     }
 
-    public async updateItem(itemId : string, data : any){
+    public async updateItem(item: IItem, data : any){
         return updateItem({
             item: {
-                id: itemId,
+                id: item.id,
                 text: typeof data !== 'string' ? JSON.stringify(data) : data,
             },
             portal: this.restURL,
@@ -119,7 +119,7 @@ export default class PortalConnection {
         });
     }
 
-    public createItem( item : IItemAdd,content: string, folder?: string){
+    public createItem( item : IItem,content: string, folder?: string){
         return createItem({
             item: item,
             text: content,
@@ -128,7 +128,15 @@ export default class PortalConnection {
             portal: this.restURL,
         });
     }
-    
+
+    public deleteItem(id : string){
+        return removeItem({
+            id: id,
+            authentication: this.authentication,
+            portal: this.restURL,
+        });
+    }
+
     private authenticate() : Promise<UserSession>{
         if(typeof this.authentication === 'undefined'){
             this.authenticationPromise = authenticate({

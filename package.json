@@ -59,8 +59,20 @@
                 "title": "Open"
             },
             {
-                "command": "arcgisAssistant.removePortal",
-                "title": "Remove Portal"
+                "command": "arcgisAssistant.delete",
+                "title": "Remove Item",
+                "icon": {
+                    "light": "resources/light/trash-solid.svg",
+                    "dark": "resources/dark/trash-solid.svg"
+                }
+            },
+            {
+                "command": "arcgisAssistant.addPortal",
+                "title": "Add Portal",
+                "icon": {
+                    "light": "resources/light/plus-solid.svg",
+                    "dark": "resources/dark/plus-solid.svg"
+                }
             }
         ],
         "menus": {
@@ -78,14 +90,17 @@
                     "when": "view == arcgisAssistant"
                 },
                 {
-                    "command": "arcgisAssistant.removePortal",
-                    "when": "view == arcgisAssistant"
-                },
-                {
                     "command": "arcgisAssistant.copy"
                 },
                 {
                     "command": "arcgisAssistant.paste"
+                },
+                {
+                    "command": "arcgisAssistant.delete",
+                    "icon": {
+                        "light": "resources/light/trash-solid.svg",
+                        "dark": "resources/dark/trash-solid.svg"
+                    }
                 }
             ]
         }

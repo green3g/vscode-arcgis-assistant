@@ -7,6 +7,7 @@ import * as path from 'path';
 import { SearchQueryBuilder } from '@esri/arcgis-rest-portal';
 import {copy, paste} from 'copy-paste';
 import PortalConnection from './PortalConnection';
+import showUserMessages, { LevelOptions } from './util/showUserMessages';
 
 const ICON_PATH = path.join('resources', 'icons');
 
@@ -16,7 +17,7 @@ export interface ArcGISItem {
     title: string;
     type: ArcGISType;
     connection: PortalConnection;
-    id?: string;
+    id: string;
     folder?: ArcGISItem;
 }
 
@@ -59,6 +60,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             title: connection.portal,
             connection,
             type: ArcGISType.Portal,
+            id: connection.portal,
         }));
 
         // listen to file changes
@@ -113,23 +115,15 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             title: connection.portal,
             connection,
             type: ArcGISType.Portal,
+            id: connection.portal,
         });
 		this._onDidChangeTreeData.fire();
-    }
-
-    public removePortal(element : ArcGISItem){
-        const index = this.portals.indexOf(element);
-        if(index > -1){
-            this.portals.splice(index, 1);
-        }
-
-        this._onDidChangeTreeData.fire();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
     // Tree methods
     ///////////////////////////////////////////////////////////////////////////////////
-    public refreshItem(item :ArcGISItem){
+    public refreshItem(item? :ArcGISItem){
         this._onDidChangeTreeData.fire();
     }
 
@@ -189,24 +183,27 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     }
 
     public async pasteItem(treeItem : ArcGISItem){
-
+        if(!treeItem){
+            return;
+        }
 
         if(!PASTE_TYPES.includes(treeItem.type)){
             window.showErrorMessage('This type of folder is not supported for pasting.');
             return;
         }
+
         const pasteData: string = await new Promise(resolve => {
             paste((err, pasteData : string) => resolve(pasteData));
         });
         const folderId = treeItem.type === ArcGISType.Folder ? treeItem.id : undefined;
         const portal = treeItem.connection;
         const {data, item} = await portal.getItem(pasteData);
-        portal.createItem(item, data, folderId).then(() => {
-            window.showInformationMessage('Item was successfully copied');
-            this.refreshItem(treeItem)
-        }).catch(e => {
-            window.showErrorMessage('Item could not be created', e);
-            console.warn(e);
+
+        showUserMessages({
+            callback: () => portal.createItem(item, data, folderId),
+            successMessage: 'Item was successfully copied',
+            successCallback: () => this.refreshItem(treeItem),
+            errorMessage: 'Item could not be created'
         });
     }
 
@@ -243,31 +240,48 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
     public async saveItem (itemId: string, content: string, portal : PortalConnection) {
 
-        const {data} = await portal.getItem(itemId);
+        const {data, item} = await portal.getItem(itemId);
         if(data === content){
             return;
         }
 
-        const result = await window.showInformationMessage(`You've made some changes.
-            Do you want to upload ${itemId} to your portal?`, 'Yes', 'Not Yet');
 
-        if(result !== 'Yes'){
+        return showUserMessages({
+            promptMessage: `You've made some changes.
+            Do you want to upload ${itemId} to your portal?`,
+            pendingMessage: 'Saving item...please wait.',
+            callback: () => {
+                //validate json
+                JSON.parse(content);
+                return portal.updateItem(item, content);
+            },
+            successMessage: 'Item saved successfully!',
+            errorMessage: 'Error while saving. The item JSON syntax may not valid. Please fix your content first.',
+        });
+    }
+
+    public async deleteItem(item : ArcGISItem){
+        if(item.type === ArcGISType.Folder){
+            window.showErrorMessage(`You cannot delete folders yet.`);
+            return;
+        }
+        if(item.type === ArcGISType.Portal){
+            const index = this.portals.indexOf(item);
+            if(index > -1){
+                this.portals.splice(index, 1);
+            }
             return;
         }
 
-
-        window.showInformationMessage('Saving item...please wait.');
-        try {
-            JSON.parse(content);
-        } catch(e){
-            window.showErrorMessage('The item JSON is not valid. Please fix your content first.');
-            console.warn(e);
-            return;
-        }
-        portal.updateItem(itemId, content).then(() => {
-            window.showInformationMessage('Item saved successfully!');
-        }).catch(e => {
-            window.showErrorMessage('The item could not be saved. Check to ensure your JSON is valid');
+        return showUserMessages({
+            promptMessage:  `${item.title} will be permanantly deleted.
+                        Are you sure you want to proceed?`,
+            promptLevel: LevelOptions.warn,
+            pendingMessage: 'Deleting item...please wait',
+            callback: () => item.connection.deleteItem(item.id),
+            successCallback: () => this.refreshItem(item.folder),
+            successMessage: 'Item has been deleted',
+            errorMessage: 'Item could not be deleted',
         });
     }
 

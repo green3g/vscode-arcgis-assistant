@@ -22,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('arcgisAssistant.copy', (item) => arcgisTreeProvider.copyItem(item));
     vscode.commands.registerCommand('arcgisAssistant.open', (item) => arcgisTreeProvider.openItem(item));
     vscode.commands.registerCommand('arcgisAssistant.paste', (item) => arcgisTreeProvider.pasteItem(item));
-    vscode.commands.registerCommand('arcgisAssistant.removePortal',  (item) => arcgisTreeProvider.removePortal(item));
+    vscode.commands.registerCommand('arcgisAssistant.delete', (item) => arcgisTreeProvider.deleteItem(item));
     vscode.commands.registerCommand('arcgisAssistant.addPortal', () => arcgisTreeProvider.addPortal());
 }
 
