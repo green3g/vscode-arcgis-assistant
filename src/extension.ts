@@ -3,10 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { ArcGISTreeProvider } from './lib/ArcGISTreeProvider';
-import copy from './lib/commands/copy';
-import open from './lib/commands/open';
 import { MemFS } from './lib/fileSystemProvider';
-import pasteItem from './lib/commands/paste';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
