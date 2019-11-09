@@ -1,17 +1,25 @@
 import * as authenticate from 'arcgis-node-util/src/auth/oauth';
-import {searchUsers, searchItems, SearchQueryBuilder, ISearchOptions, getItemData, updateItem} from '@esri/arcgis-rest-portal';
+import {
+    searchItems, SearchQueryBuilder, ISearchOptions,
+    IItem, getItem,getItemData, updateItem, createItem, IItemAdd,
+} from '@esri/arcgis-rest-portal';
 import {UserSession} from '@esri/arcgis-rest-auth';
 import { request } from '@esri/arcgis-rest-request';
 
 const DEFAULT_PARAMS = {
         start: 1,
-        num: 100,    
+        num: 100,
 };
 
 const APPID = 'JYBrPM46vyNVTozY';
 
+export interface PortalItemData {
+    item: IItem;
+    data: string;
+}
+
 export default class PortalConnection {
-    portal: string = 'https://maps.arcgis.com'
+    portal: string = 'https://maps.arcgis.com';
     restEndpoint: string = 'sharing/rest';
     authentication!: UserSession;
     params!: ISearchOptions;
@@ -28,7 +36,7 @@ export default class PortalConnection {
     }
 
 
-    
+
     public async getFolders() : Promise<any[]>{
         await this.authenticate();
         return request(`${this.restURL}/content/users/${this.authentication.username}`, {
@@ -36,13 +44,13 @@ export default class PortalConnection {
             portal: this.restURL,
         }).then(result => {
             return result.folders;
-        })
+        });
     }
 
     public async getItems(params : any = {}){
         await this.authenticate();
         if(!params.q){
-            const user = await this.authentication.getUser()
+            const user = await this.authentication.getUser();
             params.q = new SearchQueryBuilder()
                 .match(user.orgId || '')
                 .in('orgid')
@@ -60,12 +68,12 @@ export default class PortalConnection {
             authentication: this.authentication,
             portal: this.restURL,
         };
-    
+
         const {total} = await searchItems({
             ...query,
             num: 0,
         });
-    
+
         const pages = Math.round(total / query.num);
         const promises = [];
         for (let i = 0; i <= pages; i ++) {
@@ -77,9 +85,9 @@ export default class PortalConnection {
                 return {};
             }));
         }
-    
+
         return await Promise.all(promises).then((results) => {
-            return results.reduce((previous, current) => {
+            return results.reduce((previous : any, current : any) => {
                 const features = current.results || [];
                 return previous.results.concat(features);
             }, {results: []});
@@ -87,11 +95,17 @@ export default class PortalConnection {
 
     }
 
-    public async getItem(itemId : string) : Promise<String>{
-        return getItemData(itemId, {
+    public async getItem(itemId : string) : Promise<PortalItemData>{
+        const item = await getItem(itemId, {
+            portal: this.restURL,
+            authentication: this.authentication,
+        });
+        const itemData = await getItemData(itemId, {
             authentication: this.authentication,
             portal: this.restURL,
         }).then(data => JSON.stringify(data, null, 4));
+
+        return {item, data: itemData};
     }
 
     public async updateItem(itemId : string, data : any){
@@ -101,10 +115,20 @@ export default class PortalConnection {
                 text: typeof data !== 'string' ? JSON.stringify(data) : data,
             },
             portal: this.restURL,
-            authentication: this.authentication, 
-        })
+            authentication: this.authentication,
+        });
     }
 
+    public createItem( item : IItemAdd,content: string, folder?: string){
+        return createItem({
+            item: item,
+            text: content,
+            folderId: folder,
+            authentication: this.authentication,
+            portal: this.restURL,
+        });
+    }
+    
     private authenticate() : Promise<UserSession>{
         if(typeof this.authentication === 'undefined'){
             this.authenticationPromise = authenticate({

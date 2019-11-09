@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ArcGISType, ArcGISItem } from '../ArcGISTreeProvider';
 import {copy} from 'copy-paste';
 
-export default function refresh(item : ArcGISItem){
+export default function copyItem(item : ArcGISItem){
     let prop  : string = '';
     if(item.type === ArcGISType.Item || item.type === ArcGISType.Folder){
         prop = item.id || '';

@@ -5,13 +5,13 @@ export default async function(item :ArcGISItem, scope : any){
     if(!item.id){
         return;
     }
-    let data = await item.connection.getItem(item.id);
+    let {data} = await item.connection.getItem(item.id);
     if(!data){
-        window.showInformationMessage(`${item.title} does not have any data to edit.`)
+        window.showInformationMessage(`${item.title} does not have any data to edit.`);
         return;
     }
     const directory = `memfs:/${item.connection.portalName}`;
-    const folder = item.folder && item.folder.type === ArcGISType.Folder ? 
+    const folder = item.folder && item.folder.type === ArcGISType.Folder ?
         item.folder.id : undefined;
     const path = folder ? `${directory}/${folder}/${item.id}.json`
         : `${directory}/${item.id}.json`;
@@ -19,14 +19,12 @@ export default async function(item :ArcGISItem, scope : any){
     if(folder){
         scope.fs.createDirectory(Uri.parse(`${directory}/${folder}`));
     }
-    scope.fs.writeFile(Uri.parse(path), Buffer.from(data), { 
-        create: true, overwrite: true 
+    scope.fs.writeFile(Uri.parse(path), Buffer.from(data), {
+        create: true, overwrite: true
     });
     workspace.openTextDocument(Uri.parse(path)).then(doc => {
         window.showTextDocument(doc);
-        commands.executeCommand('editor.action.format');
     }, (e: any) => console.warn(e));
     console.log(data);
 
 }
-        
