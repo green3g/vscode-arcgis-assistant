@@ -99,7 +99,7 @@
         "pretest": "npm run compile",
         "test": "node ./out/test/runTest.js",
         "package": "vsce package",
-        "postpublish": "git push && git push --tags && npm run package"
+        "postversion": "git push && git push --tags && npm run package"
     },
     "devDependencies": {
         "@types/copy-paste": "^1.1.30",
