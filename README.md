@@ -32,6 +32,27 @@ Editing items can be done by clicking the item. If you double click it again, af
 
 After saving, the item will automatically upload to AGO. 
 
+## Developing
+
+This projet uses vs code for development and must be installed prior to starting. 
+
+```
+git clone <this repo>
+npm i
+
+```
+
+Run the VSC debugger tool.
+
+## Building for production
+
+Due to a bug in `copy-paste` before building to production, `copy-paste/index.js` must be modified to
+
+```javascript
+	case "openbsd":
+        config = require("./platform/linux");
+```
+
 ## Known Issues
 
 

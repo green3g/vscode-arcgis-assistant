@@ -10,9 +10,9 @@
         "APPID": "JYBrPM46vyNVTozY",
         "SECRET": "7820dfc5c3254f2b91a095db827a3556"
     },
-	"engines": {
-		"vscode": "^1.40.0"
-	},
+    "engines": {
+        "vscode": "^1.40.0"
+    },
     "categories": [
         "Other"
     ],
@@ -90,13 +90,16 @@
             ]
         }
     },
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
+    "scripts": {
+        "build": "webpack --mode production",
+        "build:dev": "webpack --mode development --watch",
+        "vscode:prepublish": "npm run build",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
 		"pretest": "npm run compile",
-		"test": "node ./out/test/runTest.js"
-	},
+        "test": "node ./out/test/runTest.js",
+        "package": "vsce package"
+    },
     "devDependencies": {
         "@types/copy-paste": "^1.1.30",
         "@types/jest": "^24.0.22",
@@ -105,6 +108,7 @@
         "ts-loader": "^5.3.1",
         "tslint": "^5.20.1",
         "typescript": "^3.7.2",
+        "vsce": "^1.69.0",
         "vscode-test": "^1.2.3",
         "webpack": "^4.27.1",
         "webpack-cli": "^3.1.2"
