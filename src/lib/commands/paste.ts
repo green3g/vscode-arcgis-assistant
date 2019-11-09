@@ -22,6 +22,7 @@ export default async function pasteItem(treeItem : ArcGISItem){
     portal.createItem(item, data, folderId).then(() => {
         window.showInformationMessage('Item was successfully copied');
     }).catch(e => {
-        window.showErrorMessage('Item could not be created');
+        window.showErrorMessage('Item could not be created', e);
+        console.warn(e);
     });
 }

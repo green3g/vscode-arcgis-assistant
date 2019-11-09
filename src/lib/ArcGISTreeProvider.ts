@@ -1,12 +1,12 @@
 import {
     Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState,
     TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider,
-    window
+    window, Uri, workspace,
 } from 'vscode';
 import * as path from 'path';
-import PortalConnection from './PortalConnection';
 import { SearchQueryBuilder } from '@esri/arcgis-rest-portal';
-import saveItem from './commands/save';
+import {copy, paste} from 'copy-paste';
+import PortalConnection from './PortalConnection';
 
 const ICON_PATH = path.join('resources', 'icons');
 
@@ -40,6 +40,10 @@ const TREE_ITEM_MIXINS :any = {
 };
 
 
+const PASTE_TYPES = [
+    ArcGISType.Portal,
+    ArcGISType.Folder,
+];
 
 export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 	private _onDidChangeTreeData: EventEmitter<any> = new EventEmitter<any>();
@@ -79,11 +83,14 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 return;
             }
             const content = fs.readFile(fileChangeEvent.uri).toString();
-            saveItem(itemId, content, portal.connection);
+            this.saveItem(itemId, content, portal.connection);
         });
     }
 
 
+    ///////////////////////////////////////////////////////////////////////////////////
+    // Portal methods
+    ///////////////////////////////////////////////////////////////////////////////////
     public async addPortal(){
         // get url from user
         let url : string = await window.showInputBox({
@@ -119,6 +126,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         this._onDidChangeTreeData.fire();
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////
+    // Tree methods
+    ///////////////////////////////////////////////////////////////////////////////////
     public refreshItem(item :ArcGISItem){
         this._onDidChangeTreeData.fire();
     }
@@ -139,6 +149,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         if(treeItem.command){
             treeItem.command.arguments = [element, this];
         }
+
         return treeItem;
     }
 
@@ -161,7 +172,108 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         return Promise.resolve([]);
     }
+    ///////////////////////////////////////////////////////////////////////////////////
+    // Commands methods
+    ///////////////////////////////////////////////////////////////////////////////////
+    public copyItem(item : ArcGISItem){
+        let prop  : string = '';
+        if(item.type === ArcGISType.Item || item.type === ArcGISType.Folder){
+            prop = item.id || '';
+        } else if(item.type === ArcGISType.Portal){
+            prop = item.connection.portal || '';
+        }
 
+        copy(prop, () => {
+            window.showInformationMessage('Success! Item was copied to the clipboard');
+        });
+    }
+
+    public async pasteItem(treeItem : ArcGISItem){
+
+
+        if(!PASTE_TYPES.includes(treeItem.type)){
+            window.showErrorMessage('This type of folder is not supported for pasting.');
+            return;
+        }
+        const pasteData: string = await new Promise(resolve => {
+            paste((err, pasteData : string) => resolve(pasteData));
+        });
+        const folderId = treeItem.type === ArcGISType.Folder ? treeItem.id : undefined;
+        const portal = treeItem.connection;
+        const {data, item} = await portal.getItem(pasteData);
+        portal.createItem(item, data, folderId).then(() => {
+            window.showInformationMessage('Item was successfully copied');
+            this.refreshItem(treeItem)
+        }).catch(e => {
+            window.showErrorMessage('Item could not be created', e);
+            console.warn(e);
+        });
+    }
+
+
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    // File System Operations
+    ///////////////////////////////////////////////////////////////////////////////////
+    public async openItem(item :ArcGISItem){
+        if(!item.id){
+            return;
+        }
+        let {data} = await item.connection.getItem(item.id);
+        if(!data){
+            window.showInformationMessage(`${item.title} does not have any data to edit.`);
+            return;
+        }
+        const directory = `memfs:/${item.connection.portalName}`;
+        const folder = item.folder && item.folder.type === ArcGISType.Folder ?
+            item.folder.id : undefined;
+        const path = folder ? `${directory}/${folder}/${item.id}.json`
+            : `${directory}/${item.id}.json`;
+        this.fs.createDirectory(Uri.parse(directory));
+        if(folder){
+            this.fs.createDirectory(Uri.parse(`${directory}/${folder}`));
+        }
+        this.fs.writeFile(Uri.parse(path), Buffer.from(data), {
+            create: true, overwrite: true
+        });
+        workspace.openTextDocument(Uri.parse(path)).then(doc => {
+            window.showTextDocument(doc);
+        }, (e: any) => console.warn(e));
+    }
+
+    public async saveItem (itemId: string, content: string, portal : PortalConnection) {
+
+        const {data} = await portal.getItem(itemId);
+        if(data === content){
+            return;
+        }
+
+        const result = await window.showInformationMessage(`You've made some changes.
+            Do you want to upload ${itemId} to your portal?`, 'Yes', 'Not Yet');
+
+        if(result !== 'Yes'){
+            return;
+        }
+
+
+        window.showInformationMessage('Saving item...please wait.');
+        try {
+            JSON.parse(content);
+        } catch(e){
+            window.showErrorMessage('The item JSON is not valid. Please fix your content first.');
+            console.warn(e);
+            return;
+        }
+        portal.updateItem(itemId, content).then(() => {
+            window.showInformationMessage('Item saved successfully!');
+        }).catch(e => {
+            window.showErrorMessage('The item could not be saved. Check to ensure your JSON is valid');
+        });
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    // Private
+    ///////////////////////////////////////////////////////////////////////////////////
     private mapFolders(folders: any[], parent: ArcGISItem) : ArcGISItem[] {
         return folders.map((folder) => {
             return {
