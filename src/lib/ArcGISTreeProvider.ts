@@ -202,7 +202,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
 
         if(!PASTE_TYPES.includes(treeItem.type)){
-            window.showErrorMessage('This type of folder is not supported for pasting.');
+            window.showErrorMessage('You can only paste items in a Portal or Folder.');
             return;
         }
 
