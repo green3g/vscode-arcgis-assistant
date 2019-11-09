@@ -2,7 +2,7 @@
     "name": "arcgis-assistant",
     "displayName": "ArcGIS Assistant",
     "description": "A tool for modifying ArcGIS Enterprise and Online items",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "publisher": "roemhildtg",
     "repository": "https://github.com/roemhildtg/vscode-arcgis-assistant",
     "config": {
@@ -94,9 +94,9 @@
         "build": "webpack --mode production",
         "build:dev": "webpack --mode development --watch",
         "vscode:prepublish": "npm run build",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"pretest": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile",
         "test": "node ./out/test/runTest.js",
         "package": "vsce package",
         "postpublish": "git push && git push --tags && npm run package"
