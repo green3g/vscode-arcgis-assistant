@@ -1,11 +1,12 @@
 import {
-    Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState, 
+    Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState,
     TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider,
     window
 } from 'vscode';
 import * as path from 'path';
 import PortalConnection from './PortalConnection';
 import { SearchQueryBuilder } from '@esri/arcgis-rest-portal';
+import saveItem from './commands/save';
 
 const ICON_PATH = path.join('resources', 'icons');
 
@@ -24,7 +25,7 @@ const TREE_ITEM_MIXINS :any = {
         iconPath: ThemeIcon.File,
         command: {
             command: 'arcgisAssistant.open',
-            title: 'Open Item', 
+            title: 'Open Item',
             tooltip: 'Opens this items json',
         }
     },
@@ -45,7 +46,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     readonly onDidChangeTreeData: Event<any> = this._onDidChangeTreeData.event;
     private context : ExtensionContext;
     private fs :FileSystemProvider;
-    
+
     private portals : ArcGISItem[];
     constructor(context: ExtensionContext, portalConnections : PortalConnection[], fs : FileSystemProvider){
         this.context = context;
@@ -56,8 +57,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             type: ArcGISType.Portal,
         }));
 
-        
-        fs.onDidChangeFile(async (events) => {
+        // listen to file changes
+        fs.onDidChangeFile((events) => {
+
             const fileChangeEvent = events.filter(e => e.uri.path.indexOf('json') > -1)[0];
             if(!fileChangeEvent){
                 return;
@@ -72,31 +74,12 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 folder = '';
             }
 
-            const portal = this.portals.filter(p => p.connection.portalName === url)[0];
+            const portal = this.portals.find(p => p.connection.portalName === url);
             if(!portal){
                 return;
             }
-
-            const portalContent = await portal.connection.getItem(itemId);
             const content = fs.readFile(fileChangeEvent.uri).toString();
-            if(portalContent === content){
-                return;
-            }
-
-            const result = await window.showInformationMessage(`You've made some changes. 
-                Do you want to upload ${itemId} to your portal?`, 'Yes', 'Not Yet');
-
-            if(result !== 'Yes'){
-                return;
-            }
-
-
-            window.showInformationMessage('Saving item...please wait.');
-            portal.connection.updateItem(itemId, content).then(() => {
-                window.showInformationMessage('Item saved successfully!');
-            }).catch(e => {
-                window.showErrorMessage('The item could not be saved. Check to ensure your JSON is valid');
-            });
+            saveItem(itemId, content, portal.connection);
         });
     }
 
@@ -108,12 +91,12 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             prompt: 'URL To ArcGIS Online or Portal',
             value: 'https://maps.arcgis.com',
         }) || '';
-    
+
         if(!url){
             return;
         }
 
-        // standardize url 
+        // standardize url
         url = url.replace(/(https?:\/\/|\/?rest\/sharing)/g, '');
         url = `https://${url}`;
 
@@ -126,7 +109,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         });
 		this._onDidChangeTreeData.fire();
     }
-    
+
     public removePortal(element : ArcGISItem){
         const index = this.portals.indexOf(element);
         if(index > -1){
@@ -167,7 +150,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             const folders = await element.connection.getFolders();
             const items = await element.connection.getItems();
             return this.mapFolders(folders, element)
-                .concat(this.mapItems(items, element)); 
+                .concat(this.mapItems(items, element));
         }
 
         if(element.type === ArcGISType.Folder){
