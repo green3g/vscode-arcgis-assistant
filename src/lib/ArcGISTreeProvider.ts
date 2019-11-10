@@ -269,6 +269,12 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     }
 
     public async saveItem (itemId: string, content: string, portal : PortalConnection) {
+        try {
+            JSON.parse(content);
+        } catch(e){
+            window.showWarningMessage('An error occured while parsing your file. Please fix any JSON syntax issues to save your item.')
+            return;
+        }
 
         // compare to existing data
         const {data, item} = await portal.getItem(itemId);
