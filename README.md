@@ -2,7 +2,7 @@
 
 This is a highly experimental plugin for editing ArcGIS Portal and Online items in VS Code. Use at your own risk!
 
-![img](./docs/img/demo.gif)
+![img](./docs/img/ago-assistant.gif)
 
 ## Features
 
