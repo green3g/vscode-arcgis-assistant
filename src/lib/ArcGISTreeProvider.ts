@@ -13,6 +13,8 @@ const ICON_PATH = path.join('resources', 'icons');
 
 export enum ArcGISType {Portal, Folder, Item}
 
+const SEP = '/';
+
 export interface ArcGISItem {
     title: string;
     type: ArcGISType;
@@ -248,19 +250,20 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             window.showInformationMessage(`${item.title} does not have any data to edit.`);
             return;
         }
-        const directory = `memfs:/${item.connection.portalName}`;
+        const directory = ['memfs:', item.connection.portalName].join(SEP);
         const folder = item.folder && item.folder.type === ArcGISType.Folder ?
             item.folder.id : undefined;
-        const path = folder ? `${directory}/${folder}/${item.id}.json`
-            : `${directory}/${item.id}.json`;
-        this.fs.createDirectory(Uri.parse(directory));
-        if(folder){
-            this.fs.createDirectory(Uri.parse(`${directory}/${folder}`));
-        }
-        this.fs.writeFile(Uri.parse(path), Buffer.from(JSON.stringify(data, null, 4)), {
+
+        const filePath = folder ?
+            [directory, folder, `${item.id}.json`].join(SEP) :
+            [directory, `${item.id}.json`].join(SEP);
+
+        this.checkDirectoryExists(filePath);
+
+        this.fs.writeFile(Uri.parse(filePath), Buffer.from(JSON.stringify(data, null, 4)), {
             create: true, overwrite: true
         });
-        workspace.openTextDocument(Uri.parse(path)).then(doc => {
+        workspace.openTextDocument(Uri.parse(filePath)).then(doc => {
             window.showTextDocument(doc);
         }, (e: any) => console.warn(e));
     }
@@ -322,6 +325,20 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     ///////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////
+
+    private checkDirectoryExists(directory : string){
+        const parts = directory.split(SEP);
+        for(let i = 2; i < parts.length; i ++){
+            const dir = parts.slice(0, i).join(SEP);
+            const uri = Uri.parse(dir);
+            try {
+                this.fs.readDirectory(uri);
+            } catch(e){
+                this.fs.createDirectory(uri);
+            }
+        }
+    }
+
     private mapFolders(folders: any[], parent: ArcGISItem) : ArcGISItem[] {
         return folders.map((folder) => {
             return {
