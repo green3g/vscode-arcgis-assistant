@@ -6,9 +6,19 @@ This is a highly experimental plugin for editing ArcGIS Portal and Online items 
 
 ## Features
 
- - Browse ArcGIS Online's folder hierarchy using a tree view built into VS Code.
- - Copy Item and Folder ID's to the clipboard
- - Edit raw JSON from item data in Visual Studio Code
+ - Browse Portal/AGO folder hierarchy using a tree view built into VS Code.
+ - Edit JSON data from items directly in VS Code
+ - Delete items
+
+### In progress:
+
+ - Copy/Paste items between portal/AGO accounts
+
+### Planned:
+
+ - Edit item metadata
+ - Resolve conflicts between AGO/Portal and current workspace using VSCode's comparison tools
+ - Enable downloading all items of types to allow VSCode to search/replace accross multiple items
 
 ## Requirements
 
