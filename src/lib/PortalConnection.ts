@@ -110,26 +110,37 @@ export default class PortalConnection {
         const itemData = await getItemData(itemId, {
             authentication: this.authentication,
             portal: this.restURL,
-        }).then(data => JSON.stringify(data, null, 4));
+        });
 
-        return {item, data: itemData};
+        let data;
+        if(typeof itemData === 'string'){
+            try {
+                data = JSON.parse(itemData);
+            } catch(e){
+                data = itemData;
+            }
+        } else {
+            data = itemData;
+        }
+
+        return {item, data};
     }
 
     public async updateItem(item: IItem, data : any){
         return updateItem({
             item: {
                 id: item.id,
-                text: typeof data !== 'string' ? JSON.stringify(data) : data,
+                text: this.getSafeData(data),
             },
             portal: this.restURL,
             authentication: this.authentication,
         });
     }
 
-    public createItem( item : IItem,content: string, folder?: string){
+    public createItem( item : IItem, content: any, folder?: string){
         return createItem({
             item: item,
-            text: content,
+            text: this.getSafeData(content),
             folderId: folder,
             authentication: this.authentication,
             portal: this.restURL,
@@ -142,6 +153,21 @@ export default class PortalConnection {
             authentication: this.authentication,
             portal: this.restURL,
         });
+    }
+
+    private getSafeData(data: any){
+        if(typeof data === 'object'){
+            return JSON.stringify(data);
+        }
+        try {
+            return JSON.stringify(JSON.parse(data));
+        } catch(e){
+            if(typeof data !== 'string'){
+                return JSON.stringify(data);
+            }
+
+            return data;
+        }
     }
 
     private authenticate() : Promise<UserSession>{

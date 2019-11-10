@@ -34,7 +34,7 @@ export interface MessageOptions {
  *  with success and error messages.
  * @param options {MessageOptions} User dialog options
  */
-export default async function showUserMessages(options : MessageOptions){
+export default async function showUserMessages(options : MessageOptions) : Promise<any> {
 
     const confirmAction = options.confirmAction || 'Yes';
     const rejectAction = options.rejectAction || 'No';
@@ -79,6 +79,7 @@ export default async function showUserMessages(options : MessageOptions){
                 options.errorCallback(options.data);
             }
             console.error(e);
+            throw new Error(e);
         });
 
 

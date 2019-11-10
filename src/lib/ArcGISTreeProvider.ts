@@ -186,7 +186,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 return item.connection.getItem(item.id).then(result => {
                     return new Promise(resolve => {
                         copy(JSON.stringify({
-                            ...result,
+                            item: result.item,
+                            data: result.data,
                             type: item.type,
                         }), resolve);
                     });
@@ -223,6 +224,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         showUserMessages({
             callback: () => portal.createItem(item, data, folderId),
+            pendingMessage: 'Creating item...please wait.',
             successMessage: 'Item was successfully copied',
             successCallback: () => this.refreshItem(treeItem),
             errorMessage: 'Item could not be created'
@@ -238,7 +240,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         if(!item.id){
             return;
         }
-        let {data} = await item.connection.getItem(item.id);
+        let {data} = await showUserMessages({
+            callback: () => item.connection.getItem(item.id),
+            pendingMessage: 'Fetching item...please wait.',
+        });
         if(!data){
             window.showInformationMessage(`${item.title} does not have any data to edit.`);
             return;
@@ -252,7 +257,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         if(folder){
             this.fs.createDirectory(Uri.parse(`${directory}/${folder}`));
         }
-        this.fs.writeFile(Uri.parse(path), Buffer.from(data), {
+        this.fs.writeFile(Uri.parse(path), Buffer.from(JSON.stringify(data, null, 4)), {
             create: true, overwrite: true
         });
         workspace.openTextDocument(Uri.parse(path)).then(doc => {
@@ -262,8 +267,11 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
     public async saveItem (itemId: string, content: string, portal : PortalConnection) {
 
+        // compare to existing data
         const {data, item} = await portal.getItem(itemId);
-        if(data === content){
+        const minSource = JSON.stringify(JSON.parse(content));
+        const minUpdated = JSON.stringify(data);
+        if(minSource === minUpdated){
             return;
         }
 
@@ -274,8 +282,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             pendingMessage: 'Saving item...please wait.',
             callback: () => {
                 //validate json
-                JSON.parse(content);
-                return portal.updateItem(item, content);
+                const text = JSON.stringify(JSON.parse(content));
+                return portal.updateItem(item, text);
             },
             successMessage: 'Item saved successfully!',
             errorMessage: 'Error while saving. The item JSON syntax may not valid. Please fix your content first.',
