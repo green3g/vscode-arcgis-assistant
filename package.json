@@ -132,6 +132,7 @@
     "dependencies": {
         "@esri/arcgis-rest-portal": "^2.6.0",
         "arcgis-node-util": "1.0.1",
-        "clipboardy": "^2.1.0"
+        "clipboardy": "^2.1.0",
+        "json-stringify-pretty-compact": "^2.0.0"
     }
 }

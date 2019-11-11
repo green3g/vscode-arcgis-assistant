@@ -8,6 +8,7 @@ import { SearchQueryBuilder } from '@esri/arcgis-rest-portal';
 import * as clipboardy from 'clipboardy';
 import PortalConnection from './PortalConnection';
 import showUserMessages, { LevelOptions } from './util/showUserMessages';
+import * as beautify from 'json-stringify-pretty-compact';
 
 const ICON_PATH = path.join('resources', 'icons');
 
@@ -263,7 +264,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         this.checkDirectoryExists(filePath);
 
-        this.fs.writeFile(Uri.parse(filePath), Buffer.from(JSON.stringify(data, null, 4)), {
+        const replacer : any = null;
+        this.fs.writeFile(Uri.parse(filePath), Buffer.from(beautify(data, {maxLength: 100})), {
             create: true, overwrite: true
         });
         workspace.openTextDocument(Uri.parse(filePath)).then(doc => {
