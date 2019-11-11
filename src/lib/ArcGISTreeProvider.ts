@@ -5,7 +5,7 @@ import {
 } from 'vscode';
 import * as path from 'path';
 import { SearchQueryBuilder } from '@esri/arcgis-rest-portal';
-import {copy, paste} from 'copy-paste';
+import * as clipboardy from 'clipboardy';
 import PortalConnection from './PortalConnection';
 import showUserMessages, { LevelOptions } from './util/showUserMessages';
 
@@ -186,13 +186,11 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             pendingMessage: 'Fetching item, please wait...',
             callback: () => {
                 return item.connection.getItem(item.id).then(result => {
-                    return new Promise(resolve => {
-                        copy(JSON.stringify({
-                            item: result.item,
-                            data: result.data,
-                            type: item.type,
-                        }), resolve);
-                    });
+                    return clipboardy.write(JSON.stringify({
+                        item: result.item,
+                        data: result.data,
+                        type: item.type,
+                    }));
                 });
             },
             successMessage: 'Success! Item data was copied to the clipboard'
@@ -209,12 +207,17 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             return;
         }
 
-        const pasteData: string = await new Promise(resolve => {
-            paste((err, pasteData : string) => resolve(pasteData));
-        });
+        const pasteData: string = await clipboardy.read();
+
         const folderId = treeItem.type === ArcGISType.Folder ? treeItem.id : undefined;
         const portal = treeItem.connection;
-        const {data, item, type} = JSON.parse(pasteData);
+        let data:any, item:any, type:any;
+        try {
+            ({data, item, type} = JSON.parse(pasteData));
+        } catch(e){
+            window.showWarningMessage('An invalid item was pasted.')
+            return
+        }
 
         if(type !== ArcGISType.Item){
             window.showWarningMessage('This item cannot be pasted here.');
@@ -223,7 +226,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         delete item.ownerFolder;
         delete item.owner;
-
+        console.log(item, data);
         showUserMessages({
             callback: () => portal.createItem(item, data, folderId),
             pendingMessage: 'Creating item...please wait.',

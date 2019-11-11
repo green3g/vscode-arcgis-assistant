@@ -6,6 +6,19 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"type": "extensionHost",
+			"request": "launch",
+			"name": "Launch Extension Prod",
+			"runtimeExecutable": "./out/extension.js",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}"
+			],
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			],
+			"preLaunchTask": "build"
+		},
+		{
 			"name": "Run Extension",
 			"type": "extensionHost",
 			"request": "launch",

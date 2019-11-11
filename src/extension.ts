@@ -3,7 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { ArcGISTreeProvider, ArcGISType } from './lib/ArcGISTreeProvider';
-import { MemFS } from './lib/fileSystemProvider';
+import { MemFS } from './lib/FileSystemProvider';
 import PortalConnection from './lib/PortalConnection';
 
 // this method is called when your extension is activated
