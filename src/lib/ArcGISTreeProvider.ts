@@ -1,14 +1,15 @@
 import {
     Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState,
     TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider,
-    window, Uri, workspace,
+    window, Uri, workspace, OutputChannel,
 } from 'vscode';
 import * as path from 'path';
 import { SearchQueryBuilder } from '@esri/arcgis-rest-portal';
-import * as clipboardy from 'clipboardy';
 import PortalConnection from './PortalConnection';
 import showUserMessages, { LevelOptions } from './util/showUserMessages';
 import * as beautify from 'json-stringify-pretty-compact';
+import { copy, paste } from './util/clipboard';
+import getLogger, { LogFunction } from './util/logging';
 
 const ICON_PATH = path.join('resources', 'icons');
 
@@ -54,6 +55,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     readonly onDidChangeTreeData: Event<any> = this._onDidChangeTreeData.event;
     private context : ExtensionContext;
     private fs :FileSystemProvider;
+    private logger : LogFunction;
 
     private portals : ArcGISItem[];
     constructor(context: ExtensionContext, portalConnections : PortalConnection[], fs : FileSystemProvider){
@@ -65,6 +67,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             type: ArcGISType.Portal,
             id: connection.portal,
         }));
+
+        // logging
+        this.logger = getLogger('Arcgis Assistant')
 
         // listen to file changes
         fs.onDidChangeFile((events) => {
@@ -110,7 +115,15 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         // standardize url
         url = url.replace(/(https?:\/\/|\/?rest\/sharing)/g, '');
+        if(url.lastIndexOf('/') === url.length - 1){
+            url = url.substring(0, url.length - 1);
+        }
         url = `https://${url}`;
+
+        if(this.portals.find(p => p.id === url)){
+            window.showInformationMessage('This portal is already in your list');
+            return;
+        }
 
         const connection = new PortalConnection({portal: url});
 
@@ -154,6 +167,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         if(!element){
             return Promise.resolve(this.portals);
         }
+        this.logger(`Fetching children for: ${element.type}: ${element.id}`);
         if(element.type === ArcGISType.Portal){
             const folders = await element.connection.getFolders();
             const items = await element.connection.getItems();
@@ -187,7 +201,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             pendingMessage: 'Fetching item, please wait...',
             callback: () => {
                 return item.connection.getItem(item.id).then(result => {
-                    return clipboardy.write(JSON.stringify({
+                    return copy(JSON.stringify({
                         item: result.item,
                         data: result.data,
                         type: item.type,
@@ -195,6 +209,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 });
             },
             successMessage: 'Success! Item data was copied to the clipboard'
+        }).catch(e => {
+            this.logger(`Copy error: ${e}. You may be missing a dependency. See README for details.`)
+            window.showErrorMessage('Item could not be copied. See error logs for details.')
         });
     }
 
@@ -208,7 +225,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             return;
         }
 
-        const pasteData: string = await clipboardy.read();
+        const pasteData: string = await paste();
 
         const folderId = treeItem.type === ArcGISType.Folder ? treeItem.id : undefined;
         const portal = treeItem.connection;
@@ -216,25 +233,29 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         try {
             ({data, item, type} = JSON.parse(pasteData));
         } catch(e){
+            this.logger(`Error while pasting: ${e.toString()}`);
+            this.logger(`Paste Data: ${pasteData}`)
             window.showWarningMessage('An invalid item was pasted.')
             return
         }
 
         if(type !== ArcGISType.Item){
             window.showWarningMessage('This item cannot be pasted here.');
-            console.warn('Invalid paste type: pasteData');
         }
 
         delete item.ownerFolder;
         delete item.owner;
-        console.log(item, data);
         showUserMessages({
             callback: () => portal.createItem(item, data, folderId),
             pendingMessage: 'Creating item...please wait.',
             successMessage: 'Item was successfully copied',
             successCallback: () => this.refreshItem(treeItem),
             errorMessage: 'Item could not be created'
-        });
+        }).catch(e => {
+            this.logger(`Paste error: ${e} You may be missing a dependency. See README for details.`)
+            window.showErrorMessage('Item could not be pasted. See error logs for details.')
+        })
+
     }
 
 
@@ -246,6 +267,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         if(!item.id){
             return;
         }
+        this.logger(`Fetching item data for: ${item.id}`);
         let {data} = await showUserMessages({
             callback: () => item.connection.getItem(item.id),
             pendingMessage: 'Fetching item...please wait.',
@@ -281,11 +303,14 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             return;
         }
 
+        this.logger(`Attempting save: ${itemId}`);
+
         // compare to existing data
         const {data, item} = await portal.getItem(itemId);
         const minSource = JSON.stringify(JSON.parse(content));
         const minUpdated = JSON.stringify(data);
         if(minSource === minUpdated){
+            this.logger(`Content not updated: ${itemId}`);
             return;
         }
 
@@ -312,6 +337,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             window.showErrorMessage(`You cannot delete folders yet.`);
             return;
         }
+        this.logger(`Removing item: ${item.id}`);
         if(item.type === ArcGISType.Portal){
             const index = this.portals.indexOf(item);
             if(index > -1){
@@ -344,6 +370,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             const uri = Uri.parse(dir);
             try {
                 this.fs.readDirectory(uri);
+                this.logger(`Creating directory: ${uri}`);
             } catch(e){
                 this.fs.createDirectory(uri);
             }

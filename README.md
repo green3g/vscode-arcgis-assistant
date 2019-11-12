@@ -9,16 +9,21 @@ This is a highly experimental plugin for editing ArcGIS Portal and Online items 
  - Browse Portal/AGO folder hierarchy using a tree view built into VS Code.
  - Edit JSON data from items directly in VS Code
  - Delete items
+ - Copy/Paste items between portal/AGO accounts
 
 ### In progress:
 
- - Copy/Paste items between portal/AGO accounts
+- Bug fixes...
 
 ### Planned:
 
  - Edit item metadata
  - Resolve conflicts between AGO/Portal and current workspace using VSCode's comparison tools
  - Enable downloading all items of types to allow VSCode to search/replace accross multiple items
+ - Browsing groups
+ - Browing other org users (admin)
+ - Create new items 
+ - Preview maps and layers in vscode web view
 
 ## Requirements
 
@@ -64,16 +69,9 @@ Due to a bug in `copy-paste` before building to production, `copy-paste/index.js
 ```
 
 ## Known Issues
-
+ - Copy/Paste doesn't work: See [node-copy-paste](https://www.npmjs.com/package/copy-paste)
 
 ## Release Notes
 
-### 0.0.1
+See the [releases page](https://github.com/roemhildtg/vscode-arcgis-assistant/releases)
 
-Initial release with support for editing AGO/Portal document items.
-
-## Future Considerations
-
- - Copy paste items (within and between portals)
- - Create new items 
- - Preview maps and layers in vscode web view
