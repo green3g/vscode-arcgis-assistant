@@ -96,8 +96,8 @@ export default class PortalConnection {
         return await Promise.all(promises).then((results) => {
             return results.reduce((previous : any, current : any) => {
                 const features = current.results || [];
-                return previous.results.concat(features);
-            }, {results: []});
+                return previous.concat(features);
+            }, []);
         });
 
     }
