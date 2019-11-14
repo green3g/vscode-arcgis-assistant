@@ -15,6 +15,8 @@ This is a highly experimental plugin for editing ArcGIS Portal and Online items 
 
 See [issues/enhancements](https://github.com/roemhildtg/vscode-arcgis-assistant/issues)
 
+Please upvote important issues using the :thumbsup: button. 
+
 ## Requirements
 
 1. VS Code

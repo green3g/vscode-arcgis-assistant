@@ -121,6 +121,7 @@
         "@types/jest": "^24.0.22",
         "@types/node": "^12.12.7",
         "@types/vscode": "^1.39.0",
+        "jest": "^24.9.0",
         "ts-loader": "^5.3.1",
         "tslint": "^5.20.1",
         "typescript": "^3.7.2",
