@@ -2,7 +2,7 @@
     "name": "arcgis-assistant",
     "displayName": "ArcGIS Assistant",
     "description": "A tool for modifying ArcGIS Enterprise and Online items",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "publisher": "roemhildtg",
     "repository": "https://github.com/roemhildtg/vscode-arcgis-assistant",
     "config": {
@@ -120,7 +120,7 @@
         "@types/copy-paste": "^1.1.30",
         "@types/jest": "^24.0.23",
         "@types/node": "^12.12.7",
-        "@types/vscode": "^1.40.0",
+        "@types/vscode": "^1.39.0",
         "jest": "^24.9.0",
         "ts-loader": "^5.3.1",
         "tslint": "^5.20.1",
