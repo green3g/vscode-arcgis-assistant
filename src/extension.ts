@@ -19,9 +19,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     // initialize tree
     const portalSetting : string = cleanString(context.globalState.get('portals'));
-    const portals = portalSetting ? 
-        portalSetting.split(',').map(p => new PortalConnection({portal: p})) :
-        [];
+    const portals = portalSetting ?
+        portalSetting.split(',').map(p => {
+            const [portal, appId] = p.split('#');
+            return new PortalConnection({portal, appId});
+        }) : [];
     const arcgisTreeProvider = new ArcGISTreeProvider(context, portals, memFs);
 
     vscode.window.registerTreeDataProvider('arcgisAssistant', arcgisTreeProvider);
@@ -34,7 +36,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     arcgisTreeProvider.onDidChangeTreeData(() => {
         arcgisTreeProvider.getChildren().then(portals => {
-            const items = portals.filter(p => p.type === ArcGISType.Portal).map(p => p.id);
+            const items = portals.filter(p => p.type === ArcGISType.Portal)
+                .map(p => `${p.connection.portal}#${p.connection.appId}`);
             context.globalState.update('portals',items.join(','));
         });
     });

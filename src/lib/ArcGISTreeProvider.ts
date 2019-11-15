@@ -62,7 +62,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         this.context = context;
         this.fs = fs;
         this.portals = portalConnections.map(connection => ({
-            title: connection.portal,
+            title: connection.portalName,
             connection,
             type: ArcGISType.Portal,
             id: connection.portal,
@@ -109,23 +109,33 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             value: 'https://maps.arcgis.com',
         }) || '';
 
-        if(!url){
-            return;
-        }
 
         // standardize url
         url = url.replace(/(https?:\/\/|\/?rest\/sharing)/g, '');
         if(url.lastIndexOf('/') === url.length - 1){
             url = url.substring(0, url.length - 1);
         }
+
+        if(!url){
+            return;
+        }
+
         url = `https://${url}`;
+
+
+        // get appId from user
+        const appId : string | undefined = await window.showInputBox({
+            placeHolder: 'Enter appId - for Portal (optional)',
+            prompt: 'abc123',
+            value: '',
+        });
 
         if(this.portals.find(p => p.id === url)){
             window.showInformationMessage('This portal is already in your list');
             return;
         }
 
-        const connection = new PortalConnection({portal: url});
+        const connection = new PortalConnection({portal: url, appId});
 
         this.portals.push({
             title: connection.portal,
@@ -269,7 +279,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
         this.logger(`Fetching item data for: ${item.id}`);
         let {data} = await showUserMessages({
-            callback: () => item.connection.getItem(item.id),
+            callback: () => item.connection.getItem(item.id)
+                .catch(e => this.logger(e)),
             pendingMessage: 'Fetching item...please wait.',
         });
         if(!data){

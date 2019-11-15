@@ -12,6 +12,8 @@ const DEFAULT_PARAMS = {
 };
 
 const APPID = 'JYBrPM46vyNVTozY';
+const PORTAL = 'https://maps.arcgis.com';
+const REST_ENDPOINT = 'sharing/rest';
 
 export interface PortalItemData {
     item: IItem;
@@ -23,25 +25,32 @@ export interface PortalOptions {
     restEndpoint?: string;
     params?: ISearchOptions;
     authentication?: UserSession;
+    appId? : string | undefined;
+}
+
+function getOrDefault(obj : any, prop : string, defaultVal : any) : any {
+    return obj[prop] || defaultVal;
 }
 
 export default class PortalConnection {
-    portal: string = 'https://maps.arcgis.com';
-    restEndpoint: string = 'sharing/rest';
+    portal: string = PORTAL;
+    appId: string | undefined = APPID;
+    restEndpoint: string = REST_ENDPOINT;
     authentication!: UserSession;
     params!: ISearchOptions;
     authenticationPromise!: Promise<UserSession>;
 
     public constructor(options : PortalOptions){
         Object.assign(this, {
-            ...options,
+            appId: getOrDefault(options, 'appId', APPID),
+            portal: getOrDefault(options, 'portal', PORTAL),
+            restEndpoint: getOrDefault(options, 'restEndpoint', REST_ENDPOINT),
             params: {
                 ...DEFAULT_PARAMS,
                 ...options.params,
             }
         });
     }
-
 
 
     public async getFolders() : Promise<any[]>{
@@ -174,8 +183,8 @@ export default class PortalConnection {
         if(typeof this.authentication === 'undefined'){
             this.authenticationPromise = new Promise((resolve, reject) => {
                 authenticate({
-                    appId: APPID,
-                    portalUrl: this.portal,
+                    appId: this.appId,
+                    portalUrl: this.restURL,
                 }).then(resolve);
                 setTimeout(() => {
                     reject(new Error('Timeout Exceeded'));
