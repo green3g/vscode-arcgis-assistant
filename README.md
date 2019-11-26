@@ -39,6 +39,11 @@ Editing items can be done by clicking the item. If you double click it again, af
 
 After saving, the item will automatically upload to AGO. 
 
+## Known Issues
+
+ - If you try to log in to two portals/ago accounts at once, it will hang the extension. This is explained in [#15](https://github.com/roemhildtg/vscode-arcgis-assistant/issues/15). To workaround this, only log in to one portal at a time.
+ - Copy/Paste may not work correctly on Windows. If someone has a Windows host to test with and diagnose, pull requests to fix will be accepted. 
+
 ## Developing
 
 This projet uses vs code for development and must be installed prior to starting. 
