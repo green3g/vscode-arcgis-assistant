@@ -66,6 +66,10 @@ Due to a bug in `copy-paste` before building to production, `copy-paste/index.js
 
 While this extension is considered "stable" and has been tested with various Portal and AGO implementations, issues may arise under various circumstances. Please report issues under the [Issues](https://github.com/roemhildtg/vscode-arcgis-assistant/issues) page providing as much information as possible in order to reproduce the issue. 
 
+Check the OUTPUT -> ArcGIS Assistant console logs as well for potentially useful feedback. 
+
+If you are interested in fixing the issue download the source code and use the built-in VSCode debugger tools to diagnose the issue. Follow the Developing guide above.
+
 ## License
 
 Please review the [software license](./LICENSE.md) prior to use.
