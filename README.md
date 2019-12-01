@@ -1,15 +1,16 @@
 # arcgis-assistant README
 
-This is a highly experimental plugin for editing ArcGIS Portal and Online items in VS Code. Use at your own risk!
+Brings ArcGIS Online/Portal JSON items into VSCode and back!
 
 ![img](./docs/img/ago-assistant.gif)
 
 ## Current Features
 
- - Browse Portal/AGO folder hierarchy using a tree view built into VS Code.
- - Edit JSON data from items directly in VS Code
- - Delete items
- - Copy/Paste items between portal/AGO accounts
+ - Connect and browse multiple Portal/AGO accounts in a folder hierarchy using a tree view built into VS Code.
+ - Edit JSON data from items directly in VS Code using a pretty JSON format.
+ - Save JSON items back to Portal/AGO in a compact JSON format after JSON format validation.
+ - Delete items.
+ - Copy/Paste items between folders and AGO/Portal accounts
 
 ## Future enhancements/bugs:
 
@@ -22,7 +23,7 @@ Please upvote important issues using the :thumbsup: button.
 1. VS Code
 2. Open workspace with read/write permissions
 
-In order to perform editing, VSCode will download a copy of the ArcGIS Item JSOn to a local directory.
+In order to perform editing, VSCode will download a copy of the ArcGIS Item JSON to a local in-memory directory.
 
 ## Download
 
@@ -37,12 +38,8 @@ add the portal to the tree. You will be prompted to log in once you access the t
 
 Editing items can be done by clicking the item. If you double click it again, after its been opened, VSCode will automatically format the `json` document.
 
-After saving, the item will automatically upload to AGO. 
+After saving, the extension will automatically prompt you to upload the modified item. 
 
-## Known Issues
-
- - If you try to log in to two portals/ago accounts at once, it will hang the extension. This is explained in [#15](https://github.com/roemhildtg/vscode-arcgis-assistant/issues/15). To workaround this, only log in to one portal at a time.
- - Copy/Paste may not work correctly on Windows. If someone has a Windows host to test with and diagnose, pull requests to fix will be accepted. 
 
 ## Developing
 
@@ -65,10 +62,10 @@ Due to a bug in `copy-paste` before building to production, `copy-paste/index.js
         config = require("./platform/linux");
 ```
 
-## Known Issues
- - Copy/Paste doesn't work: See [node-copy-paste](https://www.npmjs.com/package/copy-paste)
+## Troubleshooting
 
-## Release Notes
+While this extension is considered "stable" and has been tested with various Portal and AGO implementations, issues may arise under various circumstances. Please report issues under the [Issues](https://github.com/roemhildtg/vscode-arcgis-assistant/issues) page providing as much information as possible in order to reproduce the issue. 
 
-See the [releases page](https://github.com/roemhildtg/vscode-arcgis-assistant/releases)
+## License
 
+Please review the [software license](./LICENSE.md) prior to use.
