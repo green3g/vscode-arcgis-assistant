@@ -62,6 +62,8 @@ Due to a bug in `copy-paste` before building to production, `copy-paste/index.js
         config = require("./platform/linux");
 ```
 
+See [Pull Request here](https://github.com/xavi-/node-copy-paste/pull/67)
+
 ## Troubleshooting
 
 While this extension is considered "stable" and has been tested with various Portal and AGO implementations, issues may arise under various circumstances. Please report issues under the [Issues](https://github.com/roemhildtg/vscode-arcgis-assistant/issues) page providing as much information as possible in order to reproduce the issue. 
