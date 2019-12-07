@@ -1,10 +1,10 @@
 import {
     Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState,
     TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider,
-    window, Uri, workspace, OutputChannel,
+    window, Uri, workspace,
 } from 'vscode';
 import * as path from 'path';
-import { SearchQueryBuilder } from '@esri/arcgis-rest-portal';
+import { SearchQueryBuilder, searchGroups } from '@esri/arcgis-rest-portal';
 import PortalConnection from './PortalConnection';
 import showUserMessages, { LevelOptions } from './util/showUserMessages';
 import * as beautify from 'json-stringify-pretty-compact';
@@ -13,7 +13,16 @@ import getLogger, { LogFunction } from './util/logging';
 
 const ICON_PATH = path.join('resources', 'icons');
 
-export enum ArcGISType {Portal, Folder, Item}
+export enum ArcGISType {
+    Portal,
+    Folder,
+    Item,
+    Group,
+
+    // portal wrapper types
+    ContentFolder,
+    GroupFolder,
+}
 
 const SEP = '/';
 
@@ -34,14 +43,26 @@ const TREE_ITEM_MIXINS :any = {
             tooltip: 'Opens this items json',
         }
     },
+    [ArcGISType.Portal]: {
+        collapsibleState: TreeItemCollapsibleState.Collapsed,
+        icon: 'globe-americas-solid.svg'
+    },
+    [ArcGISType.Group]: {
+        collapsibleState: TreeItemCollapsibleState.Collapsed,
+        icon: 'users-solid.svg',
+    },
     [ArcGISType.Folder]: {
         iconPath: ThemeIcon.Folder,
         collapsibleState: TreeItemCollapsibleState.Collapsed,
     },
-    [ArcGISType.Portal]: {
+    [ArcGISType.ContentFolder]: {
+        iconPath: ThemeIcon.Folder,
         collapsibleState: TreeItemCollapsibleState.Collapsed,
-        icon: 'file_type_map.svg'
-    }
+    },
+    [ArcGISType.GroupFolder]: {
+        icon: 'users-solid.svg',
+        collapsibleState: TreeItemCollapsibleState.Collapsed,
+    },
 };
 
 
@@ -69,7 +90,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }));
 
         // logging
-        this.logger = getLogger('Arcgis Assistant')
+        this.logger = getLogger('Arcgis Assistant');
 
         // listen to file changes
         fs.onDidChangeFile((events) => {
@@ -143,6 +164,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             type: ArcGISType.Portal,
             id: connection.portal,
         });
+
 		this._onDidChangeTreeData.fire();
     }
 
@@ -178,17 +200,25 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             return Promise.resolve(this.portals);
         }
         this.logger(`Fetching children for: ${element.type}: ${element.id}`);
+
         if(element.type === ArcGISType.Portal){
+            return this.getPortalFolders(element);
+        }
+
+        if(element.type === ArcGISType.ContentFolder){
             const folders = await element.connection.getFolders();
             const items = await element.connection.getItems();
             return this.mapFolders(folders, element)
                 .concat(this.mapItems(items, element));
         }
 
-        if(element.type === ArcGISType.Folder){
-            const q = new SearchQueryBuilder().match(element.id || '').in('ownerfolder');
-            const results = await element.connection.getItems({q});
-            return this.mapItems(results, element);
+        if(element.type === ArcGISType.GroupFolder) {
+            return this.getGroups(element);
+        }
+
+        if(element.type === ArcGISType.Group){
+            const query = new SearchQueryBuilder().match(element.id || '').in('group');
+            return this.getItems(element, query);
         }
 
         return Promise.resolve([]);
@@ -220,8 +250,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             },
             successMessage: 'Success! Item data was copied to the clipboard'
         }).catch(e => {
-            this.logger(`Copy error: ${e}. You may be missing a dependency. See README for details.`)
-            window.showErrorMessage('Item could not be copied. See error logs for details.')
+            this.logger(`Copy error: ${e}. You may be missing a dependency. See README for details.`);
+            window.showErrorMessage('Item could not be copied. See error logs for details.');
         });
     }
 
@@ -244,9 +274,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             ({data, item, type} = JSON.parse(pasteData));
         } catch(e){
             this.logger(`Error while pasting: ${e.toString()}`);
-            this.logger(`Paste Data: ${pasteData}`)
-            window.showWarningMessage('An invalid item was pasted.')
-            return
+            this.logger(`Paste Data: ${pasteData}`);
+            window.showWarningMessage('An invalid item was pasted.');
+            return;
         }
 
         if(type !== ArcGISType.Item){
@@ -262,9 +292,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             successCallback: () => this.refreshItem(treeItem),
             errorMessage: 'Item could not be created'
         }).catch(e => {
-            this.logger(`Paste error: ${e} You may be missing a dependency. See README for details.`)
-            window.showErrorMessage('Item could not be pasted. See error logs for details.')
-        })
+            this.logger(`Paste error: ${e} You may be missing a dependency. See README for details.`);
+            window.showErrorMessage('Item could not be pasted. See error logs for details.');
+        });
 
     }
 
@@ -310,7 +340,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         try {
             JSON.parse(content);
         } catch(e){
-            window.showWarningMessage('An error occured while parsing your file. Please fix any JSON syntax issues to save your item.')
+            window.showWarningMessage('An error occured while parsing your file. Please fix any JSON syntax issues to save your item.');
             return;
         }
 
@@ -386,6 +416,44 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 this.fs.createDirectory(uri);
             }
         }
+    }
+
+    private getPortalFolders(portal: ArcGISItem) : ArcGISItem[] {
+        return [
+            {
+                id: 'CONTENT',
+                title: 'Content',
+                type: ArcGISType.ContentFolder,
+                connection: portal.connection,
+            },
+            {
+                id: 'GROUPS',
+                title: 'Groups',
+                type: ArcGISType.GroupFolder,
+                connection: portal.connection,
+            },
+        ];
+    }
+    
+    private async getGroups(element: ArcGISItem): Promise<ArcGISItem[]> {
+        return element.connection.getGroups()
+            .then((groups) => this.mapGroups(groups, element));
+    }
+
+    private async getItems(element: ArcGISItem, q : SearchQueryBuilder) : Promise<ArcGISItem[]> {
+        const results = await element.connection.getItems({q});
+        return this.mapItems(results, element);
+    }
+
+    private mapGroups(groups: any[], parent: ArcGISItem) : ArcGISItem[] {
+        return groups.map((group) => {
+            return {
+                id: group.id,
+                title: group.title, 
+                type: ArcGISType.Group,
+                connection: parent.connection,
+            };
+        });
     }
 
     private mapFolders(folders: any[], parent: ArcGISItem) : ArcGISItem[] {

@@ -1,7 +1,7 @@
 import * as authenticate from 'arcgis-node-util/src/auth/oauth';
 import {
     searchItems, SearchQueryBuilder, ISearchOptions,
-    IItem, getItem,getItemData, updateItem, createItem, IItemAdd, removeItem,
+    IItem, getItem,getItemData, updateItem, createItem, IItemAdd, removeItem, searchGroups, getUser,
 } from '@esri/arcgis-rest-portal';
 import {UserSession} from '@esri/arcgis-rest-auth';
 import { request } from '@esri/arcgis-rest-request';
@@ -52,6 +52,33 @@ export default class PortalConnection {
         });
     }
 
+    get portalName(){
+        return this.portal.replace(/(https?|[/:])*/, '');
+    }
+    get restURL(){
+        return `${this.portal}/${this.restEndpoint}`;
+    }
+
+    public authenticate() : Promise<UserSession>{
+        if(typeof this.authentication === 'undefined'){
+            this.authenticationPromise = new Promise((resolve, reject) => {
+                authenticate({
+                    appId: this.appId,
+                    portalUrl: this.restURL,
+                }).then(resolve);
+                setTimeout(() => {
+                    reject(new Error('Timeout Exceeded'));
+                }, 1000 * 120);
+            });
+        }
+        return this.authenticationPromise
+            .then(result => this.authentication = result)
+            .catch(e => {
+                console.error(e);
+                delete this.authenticationPromise;
+                return this.authenticate();
+            });
+    }
 
     public async getFolders() : Promise<any[]>{
         await this.authenticate();
@@ -61,6 +88,15 @@ export default class PortalConnection {
         }).then(result => {
             return result.folders;
         });
+    }
+
+    public async getGroups() : Promise<any[]> {
+        await this.authenticate();
+        return getUser({
+            username: this.authentication.username,
+            authentication: this.authentication,
+            portal: this.restURL,
+        }).then(user => user.groups || []);
     }
 
     public async getItems(params : any = {}){
@@ -177,33 +213,5 @@ export default class PortalConnection {
 
             return data;
         }
-    }
-
-    private authenticate() : Promise<UserSession>{
-        if(typeof this.authentication === 'undefined'){
-            this.authenticationPromise = new Promise((resolve, reject) => {
-                authenticate({
-                    appId: this.appId,
-                    portalUrl: this.restURL,
-                }).then(resolve);
-                setTimeout(() => {
-                    reject(new Error('Timeout Exceeded'));
-                }, 1000 * 120);
-            });
-        }
-        return this.authenticationPromise
-            .then(result => this.authentication = result)
-            .catch(e => {
-                console.error(e);
-                delete this.authenticationPromise;
-                return this.authenticate();
-            });
-    }
-
-    get portalName(){
-        return this.portal.replace(/(https?|[/:])*/, '');
-    }
-    get restURL(){
-        return `${this.portal}/${this.restEndpoint}`;
     }
 }
