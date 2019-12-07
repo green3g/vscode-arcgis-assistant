@@ -32,18 +32,14 @@
         "commands": [
             {
                 "command": "arcgisAssistant.refreshEntry",
-                "title": "Refresh",
-                "icon": {
-                    "light": "resources/light/refresh.svg",
-                    "dark": "resources/dark/refresh.svg"
-                }
+                "title": "Refresh"
             },
             {
                 "command": "arcgisAssistant.addPortal",
                 "title": "Add Portal",
                 "icon": {
-                    "light": "resources/light/plus-solid.svg",
-                    "dark": "resources/dark/plus-solid.svg"
+                    "light": "resources/icons/plus-square-solid.svg",
+                    "dark": "resources/icons/plus-square-solid.svg"
                 }
             },
             {
@@ -60,19 +56,7 @@
             },
             {
                 "command": "arcgisAssistant.delete",
-                "title": "Remove Item",
-                "icon": {
-                    "light": "resources/light/trash-solid.svg",
-                    "dark": "resources/dark/trash-solid.svg"
-                }
-            },
-            {
-                "command": "arcgisAssistant.addPortal",
-                "title": "Add Portal",
-                "icon": {
-                    "light": "resources/light/plus-solid.svg",
-                    "dark": "resources/dark/plus-solid.svg"
-                }
+                "title": "Remove Item"
             }
         ],
         "menus": {
@@ -96,11 +80,7 @@
                     "command": "arcgisAssistant.paste"
                 },
                 {
-                    "command": "arcgisAssistant.delete",
-                    "icon": {
-                        "light": "resources/light/trash-solid.svg",
-                        "dark": "resources/dark/trash-solid.svg"
-                    }
+                    "command": "arcgisAssistant.delete"
                 }
             ]
         }
@@ -132,7 +112,7 @@
     },
     "dependencies": {
         "@esri/arcgis-rest-portal": "^2.6.1",
-        "arcgis-node-util": "1.0.1",
+        "arcgis-node-util": "^1.4.0",
         "copy-paste": "^1.3.0",
         "json-stringify-pretty-compact": "^2.0.0"
     }
