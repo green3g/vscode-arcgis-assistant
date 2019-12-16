@@ -52,11 +52,11 @@ const TREE_ITEM_MIXINS :any = {
         icon: 'users-solid.svg',
     },
     [ArcGISType.Folder]: {
-        iconPath: ThemeIcon.Folder,
+        icon: 'folder-solid.svg',
         collapsibleState: TreeItemCollapsibleState.Collapsed,
     },
     [ArcGISType.ContentFolder]: {
-        iconPath: ThemeIcon.Folder,
+        icon: 'file-alt-regular.svg',
         collapsibleState: TreeItemCollapsibleState.Collapsed,
     },
     [ArcGISType.GroupFolder]: {
@@ -220,6 +220,11 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         if(element.type === ArcGISType.Group){
             const query = new SearchQueryBuilder().match(element.id || '').in('group');
             return this.getItems(element, query);
+        }
+
+        if(element.type === ArcGISType.Folder){
+            const q = new SearchQueryBuilder().match(element.id || '').in('ownerfolder');
+            return this.getItems(element, q);
         }
 
         return Promise.resolve([]);
