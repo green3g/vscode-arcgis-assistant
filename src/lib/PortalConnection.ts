@@ -7,8 +7,9 @@ import {UserSession} from '@esri/arcgis-rest-auth';
 import { request } from '@esri/arcgis-rest-request';
 
 const DEFAULT_PARAMS = {
-        start: 1,
-        num: 100,
+    start: 1,
+    num: 100,
+    sortField: 'title',
 };
 
 const APPID = 'JYBrPM46vyNVTozY';

@@ -36,7 +36,7 @@ export interface ArcGISItem {
 
 const TREE_ITEM_MIXINS :any = {
     [ArcGISType.Item]: {
-        iconPath: ThemeIcon.File,
+        icon: 'file-alt-regular.svg',
         command: {
             command: 'arcgisAssistant.open',
             title: 'Open Item',
@@ -52,11 +52,10 @@ const TREE_ITEM_MIXINS :any = {
         icon: 'users-solid.svg',
     },
     [ArcGISType.Folder]: {
-        icon: 'folder-solid.svg',
         collapsibleState: TreeItemCollapsibleState.Collapsed,
     },
     [ArcGISType.ContentFolder]: {
-        icon: 'file-alt-regular.svg',
+        icon: 'folder-solid.svg',
         collapsibleState: TreeItemCollapsibleState.Collapsed,
     },
     [ArcGISType.GroupFolder]: {
