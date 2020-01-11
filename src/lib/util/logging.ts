@@ -13,7 +13,6 @@ export default function createLogger(name : string) : LogFunction {
     const channel = window.createOutputChannel(name);
 
     return (...args : any[]) => {
-        channel.show();
         channel.appendLine(`${name}: ${argsToString(args)}`)
     }
 }
