@@ -33,6 +33,26 @@ function getOrDefault(obj : any, prop : string, defaultVal : any) : any {
     return obj[prop] || defaultVal;
 }
 
+function sortObjectArray(array: any[], field: string){
+    function compare(a : any, b : any) {
+        const aVal : any = a[field];
+        const bVal : any = b[field];
+
+        // a is less than b
+        if (aVal < bVal) {
+          return -1;
+        }
+        // a is greater than b
+        if (aVal > bVal) {
+          return 1;
+        }
+        // a must be equal to b
+        return 0;
+      }
+
+      return array.sort(compare);
+}
+
 export default class PortalConnection {
     portal: string = PORTAL;
     appId: string | undefined = APPID;
@@ -97,7 +117,7 @@ export default class PortalConnection {
             username: this.authentication.username,
             authentication: this.authentication,
             portal: this.restURL,
-        }).then(user => user.groups || []);
+        }).then(user => sortObjectArray( user.groups || [], 'title'));
     }
 
     public async getItems(params : any = {}){
@@ -175,6 +195,7 @@ export default class PortalConnection {
     public async updateItem(item: IItem, data : any){
         return updateItem({
             item: {
+                owner: item.owner,
                 id: item.id,
                 text: this.getSafeData(data),
             },
