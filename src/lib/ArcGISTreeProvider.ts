@@ -33,6 +33,7 @@ export interface ArcGISItem {
     connection: PortalConnection;
     id: string;
     folder?: ArcGISItem;
+    owner?: ArcGISItem;
 }
 
 const TREE_ITEM_MIXINS :any = {
@@ -283,6 +284,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         const pasteData: string = await paste();
 
+        const userId = treeItem.owner?.id;
         const folderId = treeItem.type === ArcGISType.Folder ? treeItem.id : undefined;
         const portal = treeItem.connection;
         let data:any, item:any, type:any;
@@ -302,7 +304,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         delete item.ownerFolder;
         delete item.owner;
         showUserMessages({
-            callback: () => portal.createItem(item, data, folderId),
+            callback: () => portal.createItem(item, data, folderId, userId),
             pendingMessage: 'Creating item...please wait.',
             successMessage: 'Item was successfully copied',
             successCallback: () => this.refreshItem(treeItem),
@@ -329,10 +331,6 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 .catch(e => this.logger(e)),
             pendingMessage: 'Fetching item...please wait.',
         });
-        if(!data){
-            window.showInformationMessage(`${item.title} does not have any data to edit.`);
-            return;
-        }
         const directory = ['memfs:', item.connection.portalName].join(SEP);
         const folder = item.folder && item.folder.type === ArcGISType.Folder ?
             item.folder.id : undefined;
@@ -343,8 +341,22 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         this.checkDirectoryExists(filePath);
 
-        const replacer : any = null;
-        this.fs.writeFile(Uri.parse(filePath), Buffer.from(beautify(data, {maxLength: 100})), {
+        if(!data){
+            this.logger(`${item.title} does not have any data yet.`);
+        }
+
+        let content;
+        if(typeof data === 'string'){
+            try {
+                data = JSON.parse(data);
+            } catch(e){
+                this.logger(`Parse error: ${e}`);
+            }
+        }
+
+        content = typeof data === 'string' ? data : beautify(data, {maxLength: 100});
+
+        this.fs.writeFile(Uri.parse(filePath), Buffer.from(content), {
             create: true, overwrite: true
         });
         workspace.openTextDocument(Uri.parse(filePath)).then(doc => {
@@ -356,7 +368,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         try {
             JSON.parse(content);
         } catch(e){
-            window.showWarningMessage('An error occured while parsing your file. Please fix any JSON syntax issues to save your item.');
+            window.showWarningMessage(`An error occured while parsing your file.  
+            Please fix any JSON syntax issues to save your item: ${itemId}`);
             return;
         }
 
@@ -367,7 +380,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         const minSource = JSON.stringify(JSON.parse(content));
         const minUpdated = JSON.stringify(data);
         if(minSource === minUpdated){
-            this.logger(`Content not updated: ${itemId}`);
+            this.logger(`Content has not been modified: ${itemId}`);
             return;
         }
 
@@ -383,6 +396,8 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             },
             successMessage: 'Item saved successfully!',
             errorMessage: 'Error while saving. The item JSON syntax may not valid. Please fix your content first.',
+        }).catch(e => {
+            this.logger(`Save Error: ${e}`)
         });
     }
 
@@ -409,10 +424,12 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                         Are you sure you want to proceed?`,
             promptLevel: LevelOptions.warn,
             pendingMessage: 'Deleting item...please wait',
-            callback: () => item.connection.deleteItem(item.id),
+            callback: () => item.connection.deleteItem(item.id, item.owner?.id),
             successCallback: () => this.refreshItem(item.folder),
             successMessage: 'Item has been deleted',
             errorMessage: 'Item could not be deleted',
+        }).catch(e => {
+            this.logger(`Delete error: ${e}`)
         });
     }
 
@@ -501,6 +518,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 title: folder.title,
                 type: ArcGISType.Folder,
                 connection: parent.connection,
+                owner: parent,
             };
         });
     }
@@ -508,6 +526,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
     private mapItems(items : any, parent : ArcGISItem) : ArcGISItem[] {
         return items.map((item:any) => {
             return {
+                owner: parent.owner,
                 folder: parent,
                 id: item.id,
                 title: `${item.title} (${item.type})`,

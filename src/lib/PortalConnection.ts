@@ -203,7 +203,8 @@ export default class PortalConnection {
         const itemData = await getItemData(itemId, {
             authentication: this.authentication,
             portal: this.restURL,
-        });
+            rawResponse: true,
+        }).then(response => response.text())
 
         let data;
         if(typeof itemData === 'string'){
@@ -231,19 +232,21 @@ export default class PortalConnection {
         });
     }
 
-    public createItem( item : IItem, content: any, folder?: string){
+    public createItem( item : IItem, content: any, folder?: string, user?: string){
         return createItem({
             item: item,
             text: this.getSafeData(content),
             folderId: folder,
             authentication: this.authentication,
             portal: this.restURL,
+            owner: user,
         });
     }
 
-    public deleteItem(id : string){
+    public deleteItem(id : string, owner? : string){
         return removeItem({
-            id: id,
+            id,
+            owner,
             authentication: this.authentication,
             portal: this.restURL,
         });
