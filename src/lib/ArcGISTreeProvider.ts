@@ -22,6 +22,7 @@ export enum ArcGISType {
     // portal wrapper types
     ContentFolder,
     GroupFolder,
+    UserFolder,
 }
 
 const SEP = '/';
@@ -49,19 +50,24 @@ const TREE_ITEM_MIXINS :any = {
     },
     [ArcGISType.Group]: {
         collapsibleState: TreeItemCollapsibleState.Collapsed,
-        icon: 'users-solid.svg',
+        icon: 'folder-solid.svg',
     },
     [ArcGISType.Folder]: {
         collapsibleState: TreeItemCollapsibleState.Collapsed,
+        icon: 'folder-solid.svg',
     },
     [ArcGISType.ContentFolder]: {
         icon: 'folder-solid.svg',
         collapsibleState: TreeItemCollapsibleState.Collapsed,
     },
     [ArcGISType.GroupFolder]: {
-        icon: 'users-solid.svg',
+        icon: 'share-alt.svg',
         collapsibleState: TreeItemCollapsibleState.Collapsed,
     },
+    [ArcGISType.UserFolder]: {
+        icon: 'users-solid.svg',
+        collapsibleState: TreeItemCollapsibleState.Collapsed,
+    }
 };
 
 
@@ -206,8 +212,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         }
 
         if(element.type === ArcGISType.ContentFolder){
-            const folders = await element.connection.getFolders();
-            const items = await element.connection.getItems();
+            const user = element.id === 'CONTENT' ? undefined : element.id;
+            const folders = await element.connection.getFolders(user);
+            const items = await element.connection.getItems({username: user});
             return this.mapFolders(folders, element)
                 .concat(this.mapItems(items, element));
         }
@@ -224,6 +231,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         if(element.type === ArcGISType.Folder){
             const q = new SearchQueryBuilder().match(element.id || '').in('ownerfolder');
             return this.getItems(element, q);
+        }
+
+        if(element.type === ArcGISType.UserFolder){
+            return this.getUsers(element);
         }
 
         return Promise.resolve([]);
@@ -437,12 +448,23 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
                 type: ArcGISType.GroupFolder,
                 connection: portal.connection,
             },
+            {
+                id: 'USERS',
+                title: 'Users',
+                type: ArcGISType.UserFolder,
+                connection: portal.connection,
+            },
         ];
     }
-    
+
     private async getGroups(element: ArcGISItem): Promise<ArcGISItem[]> {
         return element.connection.getGroups()
             .then((groups) => this.mapGroups(groups, element));
+    }
+
+    private async getUsers(element: ArcGISItem): Promise<ArcGISItem[]> {
+        return element.connection.getUsers()
+            .then((users) => this.mapUsers(users, element));
     }
 
     private async getItems(element: ArcGISItem, q : SearchQueryBuilder) : Promise<ArcGISItem[]> {
@@ -450,6 +472,17 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         return this.mapItems(results, element);
     }
 
+    private mapUsers(users: any[], parent: ArcGISItem) : ArcGISItem[] {
+        return users.map((user) => {
+            return {
+                id: user.username,
+                title: user.username, 
+                type: ArcGISType.ContentFolder,
+                connection: parent.connection,
+            };
+        });
+    }
+    
     private mapGroups(groups: any[], parent: ArcGISItem) : ArcGISItem[] {
         return groups.map((group) => {
             return {

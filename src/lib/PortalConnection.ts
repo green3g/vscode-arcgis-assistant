@@ -1,7 +1,7 @@
 import * as authenticate from 'arcgis-node-util/src/auth/oauth';
 import {
     searchItems, SearchQueryBuilder, ISearchOptions,
-    IItem, getItem,getItemData, updateItem, createItem, IItemAdd, removeItem, searchGroups, getUser,
+    IItem, getItem,getItemData, updateItem, createItem, IItemAdd, removeItem, searchGroups, getUser, searchUsers,
 } from '@esri/arcgis-rest-portal';
 import {UserSession} from '@esri/arcgis-rest-auth';
 import { request } from '@esri/arcgis-rest-request';
@@ -9,7 +9,6 @@ import { request } from '@esri/arcgis-rest-request';
 const DEFAULT_PARAMS = {
     start: 1,
     num: 100,
-    sortField: 'title',
 };
 
 const APPID = 'JYBrPM46vyNVTozY';
@@ -51,6 +50,33 @@ function sortObjectArray(array: any[], field: string){
       }
 
       return array.sort(compare);
+}
+
+async function queryAll(queryFunction : Function, params : any = {}){
+
+    const {total} = await queryFunction({
+        ...params,
+        num: 0,
+    });
+
+    const pages = Math.round(total / params.num);
+    const promises = [];
+    for (let i = 0; i <= pages; i ++) {
+        promises.push(queryFunction({
+            ...params,
+            start: 1 + (i * params.num),
+        }).catch((e : any) => {
+            console.log(`Error while searching items. \n ${e} \n`, params);
+            return {};
+        }));
+    }
+
+    return await Promise.all(promises).then((results) => {
+        return results.reduce((previous : any, current : any) => {
+            const features = current.results || [];
+            return previous.concat(features);
+        }, []);
+    });
 }
 
 export default class PortalConnection {
@@ -101,9 +127,10 @@ export default class PortalConnection {
             });
     }
 
-    public async getFolders() : Promise<any[]>{
+    public async getFolders(username? : string) : Promise<any[]>{
         await this.authenticate();
-        return request(`${this.restURL}/content/users/${this.authentication.username}`, {
+        username = username || this.authentication.username;
+        return request(`${this.restURL}/content/users/${username}`, {
             authentication: this.authentication,
             portal: this.restURL,
         }).then(result => {
@@ -120,6 +147,27 @@ export default class PortalConnection {
         }).then(user => sortObjectArray( user.groups || [], 'title'));
     }
 
+    public async getUsers(params : any = {}) : Promise<any[]> {
+        await this.authenticate();
+        if(!params.q){
+            const user = await this.authentication.getUser();
+            params.q = new SearchQueryBuilder()
+                .match(user.orgId || '')
+                .in('orgid')
+        }
+
+        const query = {
+            num: 1000,
+            ...this.params,
+            ...params,
+            authentication: this.authentication,
+            portal: this.restURL,
+            // sortField: 'username',
+        }
+
+        return queryAll(searchUsers, query).then((users) => sortObjectArray(users, 'username'));
+    }
+
     public async getItems(params : any = {}){
         await this.authenticate();
         if(!params.q){
@@ -131,40 +179,19 @@ export default class PortalConnection {
                 .match('root')
                 .in('ownerfolder')
                 .and()
-                .match(this.authentication.username)
+                .match(params.username || this.authentication.username)
                 .in('owner');
         }
         const query = {
-            num: 100,
+            num: 1000,
+            sortField: 'username',
             ...this.params,
             ...params,
             authentication: this.authentication,
             portal: this.restURL,
         };
 
-        const {total} = await searchItems({
-            ...query,
-            num: 0,
-        });
-
-        const pages = Math.round(total / query.num);
-        const promises = [];
-        for (let i = 0; i <= pages; i ++) {
-            promises.push(searchItems({
-                ...query,
-                start: 1 + (i * query.num),
-            }).catch((e) => {
-                console.log(`Error while searching items. \n ${e} \n`, query);
-                return {};
-            }));
-        }
-
-        return await Promise.all(promises).then((results) => {
-            return results.reduce((previous : any, current : any) => {
-                const features = current.results || [];
-                return previous.concat(features);
-            }, []);
-        });
+        return queryAll(searchItems, query).then(items => sortObjectArray(items, 'title'))
 
     }
 
