@@ -162,8 +162,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             return;
         }
 
+        this.logger(`Creating new portal connection to url: ${url}, app: ${appId}`)
         const connection = new PortalConnection({portal: url, appId});
         await connection.authenticate();
+        this.logger(`Authentication successful. Username: ${connection.authentication.username}`)
 
         this.portals.push({
             title: connection.portal,
