@@ -44,7 +44,7 @@ If you are using AGO, you can skip the App ID prompt (hit enter).
 
 Portal Usage:
 1. Log in to your portal and add a new application
-2. Go to the application settings page and register the URL for the VSCode assistant plugin (http://lvh.me:3030)
+2. Go to the application settings page and register the URL for the VSCode assistant plugin (http://lvh.me:3000)
 3. Copy the applicationID from the settings page and paste it into the VSCode prompt
 
 You only have to do this once per portal, and the plugin will cache the app ID between sessions. 
