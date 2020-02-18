@@ -100,7 +100,8 @@ export default class PortalConnection {
     }
 
     get portalName(){
-        return this.portal.replace(/(https?|[/:])*/, '');
+        const url = this.portal.replace(/(https?|[/:])*/, '');
+        return url.split('/')[0];
     }
     get restURL(){
         return `${this.portal}/${this.restEndpoint}`;
