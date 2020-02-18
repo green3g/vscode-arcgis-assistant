@@ -1,7 +1,7 @@
 import {
     Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState,
     TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider,
-    window, Uri, workspace,
+    window, Uri, workspace, TextDocument,
 } from 'vscode';
 import * as path from 'path';
 import { SearchQueryBuilder, searchGroups } from '@esri/arcgis-rest-portal';
@@ -99,14 +99,14 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
         this.logger = getLogger('Arcgis Assistant');
 
         // listen to file changes
-        fs.onDidChangeFile((events) => {
-
-            const fileChangeEvent = events.filter(e => e.uri.path.indexOf('json') > -1)[0];
-            if(!fileChangeEvent){
+        workspace.onDidSaveTextDocument((document: TextDocument) => {
+            // only use memfs scheme
+            if(document.uri.scheme !== 'memfs'){
                 return;
             }
 
-            const parts = fileChangeEvent.uri.path.split('/');
+            // get the item id/folder etc
+            const parts = document.uri.path.split('/');
             const fileName = parts[parts.length - 1];
             const itemId = fileName.split('.')[0];
             const url = parts[1];
@@ -119,7 +119,9 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             if(!portal){
                 return;
             }
-            const content = fs.readFile(fileChangeEvent.uri).toString();
+
+            // read/save the content
+            const content = fs.readFile(document.uri).toString();
             this.saveItem(itemId, content, portal.connection);
         });
     }
