@@ -176,14 +176,14 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             id: connection.portal,
         });
 
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(this.portals[this.portals.length - 1]);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
     // Tree methods
     ///////////////////////////////////////////////////////////////////////////////////
     public refreshItem(item? :ArcGISItem){
-        this._onDidChangeTreeData.fire();
+        this._onDidChangeTreeData.fire(item);
     }
 
     public getTreeItem(element: ArcGISItem): TreeItem{
@@ -288,7 +288,10 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         const pasteData: string = await paste();
 
-        const userId = treeItem.owner?.id;
+        const userId = treeItem.owner?.id === 'CONTENT' ? 
+            treeItem.connection.authentication.username : 
+            treeItem.owner?.id;
+
         const folderId = treeItem.type === ArcGISType.Folder ? treeItem.id : undefined;
         const portal = treeItem.connection;
         let data:any, item:any, type:any;
@@ -423,12 +426,16 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             return;
         }
 
+        const userId = item.owner?.id === 'CONTENT' ? 
+            item.connection.authentication.username : 
+            item.owner?.id;
+
         return showUserMessages({
             promptMessage:  `${item.title} will be permanantly deleted.
                         Are you sure you want to proceed?`,
             promptLevel: LevelOptions.warn,
             pendingMessage: 'Deleting item...please wait',
-            callback: () => item.connection.deleteItem(item.id, item.owner?.id),
+            callback: () => item.connection.deleteItem(item.id, userId),
             successCallback: () => this.refreshItem(item.folder),
             successMessage: 'Item has been deleted',
             errorMessage: 'Item could not be deleted',
