@@ -224,8 +224,7 @@ export default class PortalConnection {
     public async updateItem(item: IItem, data : any){
         return updateItem({
             item: {
-                owner: item.owner,
-                id: item.id,
+                ...item,
                 text: this.getSafeData(data),
             },
             portal: this.restURL,

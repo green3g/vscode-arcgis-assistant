@@ -1,10 +1,10 @@
 import {
     Event, EventEmitter, TreeDataProvider, TreeItemCollapsibleState,
-    TreeItem, ThemeIcon, ExtensionContext, FileSystemProvider,
+    TreeItem, ExtensionContext, FileSystemProvider,
     window, Uri, workspace, TextDocument,
 } from 'vscode';
 import * as path from 'path';
-import { SearchQueryBuilder, searchGroups } from '@esri/arcgis-rest-portal';
+import { SearchQueryBuilder, ICreateItemResponse } from '@esri/arcgis-rest-portal';
 import PortalConnection from './PortalConnection';
 import showUserMessages, { LevelOptions } from './util/showUserMessages';
 import * as beautify from 'json-stringify-pretty-compact';
@@ -77,9 +77,19 @@ const PASTE_TYPES = [
     ArcGISType.Folder,
 ];
 
+const APP_TYPES = [
+        'Web Mapping Application',
+        'Workforce Project',
+        'Dashboard',
+]
+const MAP_TYPES = [
+    'Web Map',
+    'Web Scene',
+]
+
 export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
-	private _onDidChangeTreeData: EventEmitter<any> = new EventEmitter<any>();
-    readonly onDidChangeTreeData: Event<any> = this._onDidChangeTreeData.event;
+    private _onDidChangeTreeData: EventEmitter<ArcGISItem | undefined | null | void> = new EventEmitter<ArcGISItem | undefined | null | void>();
+    readonly onDidChangeTreeData: Event<ArcGISItem | undefined | null | void> = this._onDidChangeTreeData.event;
     private context : ExtensionContext;
     private fs :FileSystemProvider;
     private logger : LogFunction;
@@ -176,7 +186,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             id: connection.portal,
         });
 
-		this._onDidChangeTreeData.fire(this.portals[this.portals.length - 1]);
+		this.refreshItem();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -323,6 +333,76 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
     }
 
+    async createNewItem(treeItem : ArcGISItem) : Promise<ICreateItemResponse | void> {
+        const ValidLocationTypes = [ArcGISType.ContentFolder, ArcGISType.Folder]
+        if(!ValidLocationTypes.includes(treeItem.type)){
+            window.showInformationMessage('You can only create new apps in your content folders');
+            return;
+        }
+
+        const itemName = await window.showInputBox({
+            placeHolder: 'My sweet app',
+            prompt: 'Application Name',
+            value: '',
+        })
+        const descripton = await window.showInputBox({
+            placeHolder: 'My sweet app',
+            prompt: 'Description',
+            value: '',
+        }) 
+        const type = await window.showQuickPick([
+            ...APP_TYPES,
+            ...MAP_TYPES,
+        ], {})
+        const tags = await window.showInputBox({
+            placeHolder: 'app',
+            prompt: 'Application Tags',
+            value: 'app',
+        })
+
+        const url = APP_TYPES.includes(type || '') ? await window.showInputBox({
+            placeHolder: 'https://my.app.com/?id={}',
+            prompt: 'Enter URL. Use {} to substitute item ID after it is created',
+            value: '',
+        }) : undefined;
+
+        const item : any = {
+            title: itemName || '(None)',
+            owner: treeItem.connection.authentication.username,
+            folder: treeItem.folder?.id,
+            tags: tags?.replace(/ +/g, '').split(',') || [],
+            description: descripton,
+            url,
+            type,
+        };
+        const content = '{}'
+        this.logger(`Creating new item ${itemName}`)
+        window.showInformationMessage('Creating item, please wait...')
+        return treeItem.connection.createItem(item, content, treeItem.id !== 'CONTENT' ? treeItem.id : undefined)
+        .then((result) => {
+            this.logger(`Item created: ${result.id}`)
+            const replaceId = /\{\}/;
+            if(url?.match(replaceId)){
+                const replacement = item.url.replace(replaceId, result.id)
+                const updates : any = {
+                    id: result.id,
+                    folder: result.folder,
+                    ...item,
+                    url : replacement,
+                }
+                this.logger(`Updating item with new URL: ${replacement}`)
+                return treeItem.connection.updateItem(updates, content).then(() => result);
+            }
+            return result;
+        })
+        .then((newItem : ICreateItemResponse) => {
+            window.showInformationMessage(`Item was successfully created: ${treeItem.connection.portal}/home/item.html?id=${newItem.id}`)
+            this.refreshItem(treeItem);
+            return newItem;
+        }).catch(e => this.logger(e))
+        
+    }
+
 
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -422,7 +502,7 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             if(index > -1){
                 this.portals.splice(index, 1);
             }
-            this.refreshItem(item);
+            this.refreshItem();
             return;
         }
 

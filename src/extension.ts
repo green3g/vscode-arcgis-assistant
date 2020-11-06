@@ -33,6 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('arcgisAssistant.paste', (item) => arcgisTreeProvider.pasteItem(item));
     vscode.commands.registerCommand('arcgisAssistant.delete', (item) => arcgisTreeProvider.deleteItem(item));
     vscode.commands.registerCommand('arcgisAssistant.addPortal', () => arcgisTreeProvider.addPortal());
+    vscode.commands.registerCommand('arcgisAssistant.createApp', (item) => arcgisTreeProvider.createNewItem(item));
 
     arcgisTreeProvider.onDidChangeTreeData(() => {
         arcgisTreeProvider.getChildren().then(portals => {
