@@ -2,7 +2,7 @@
   "name": "arcgis-assistant",
   "displayName": "ArcGIS Assistant",
   "description": "A tool for modifying ArcGIS Enterprise and Online items",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "publisher": "roemhildtg",
   "repository": "https://github.com/roemhildtg/vscode-arcgis-assistant",
   "config": {
