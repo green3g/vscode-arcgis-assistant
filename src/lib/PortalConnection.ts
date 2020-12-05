@@ -1,7 +1,7 @@
-import * as authenticate from 'arcgis-node-util/src/auth/oauth';
+import {authenticate} from 'arcgis-node-util/src/auth/oauth';
 import {
     searchItems, SearchQueryBuilder, ISearchOptions,
-    IItem, getItem,getItemData, updateItem, createItem, IItemAdd, removeItem, searchGroups, getUser, searchUsers,
+    IItem, getItem,getItemData, updateItem, createItem, removeItem, getUser, searchUsers,
 } from '@esri/arcgis-rest-portal';
 import {UserSession} from '@esri/arcgis-rest-auth';
 import { request } from '@esri/arcgis-rest-request';
@@ -60,7 +60,7 @@ async function queryAll(queryFunction : Function, params : any = {}){
     });
 
     const pages = Math.round(total / params.num);
-    const promises = [];
+    const promises : Promise<any>[] = [];
     for (let i = 0; i <= pages; i ++) {
         promises.push(queryFunction({
             ...params,
@@ -85,7 +85,7 @@ export default class PortalConnection {
     restEndpoint: string = REST_ENDPOINT;
     authentication!: UserSession;
     params!: ISearchOptions;
-    authenticationPromise!: Promise<UserSession>;
+    authenticationPromise!: Promise<UserSession> | undefined;
 
     public constructor(options : PortalOptions){
         Object.assign(this, {
@@ -111,8 +111,15 @@ export default class PortalConnection {
         if(typeof this.authentication === 'undefined'){
             this.authenticationPromise = this.getAuthPromise();
         }
+        if(!this.authenticationPromise){
+            return Promise.reject(new Error('There was a problem creating an authentication server'))
+        }
         return this.authenticationPromise
             .then(result => this.authentication = result)
+            .catch(e => {
+                this.authenticationPromise = undefined;
+                return Promise.reject(e);
+            })
     }
 
     public async getFolders(username? : string) : Promise<any[]>{
@@ -240,17 +247,12 @@ export default class PortalConnection {
     }
 
     private getAuthPromise() : Promise<UserSession> {
-        return new Promise((resolve, reject) => {
-            authenticate({
-                appId: this.appId,
+        return authenticate({
+                appId: this.appId as string,
                 portalUrl: this.restURL,
+                // timeout in 60 seconds
+                rejectionTimeout: 60000,
             })
-            .then(resolve)
-            .catch((e: any) => reject(e));
-            setTimeout(() => {
-                reject(new Error('Timeout Exceeded'));
-            }, 1000 * 120);
-        });
     }
     private getSafeData(data: any){
         if(typeof data === 'object'){

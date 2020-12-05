@@ -27,7 +27,7 @@ export async function showProgress(options : ProgressOptions) : Promise<any> {
         cancellable: !!options.cancelCallback,
     }, async (progress, token) => {
 
-        const promises = [];
+        const promises : Promise<any>[] = [];
         for(let i = 0; i < options.tasks.length; i ++){
             const task = options.tasks[i]
             const promise = task.execute(task.args);
