@@ -148,22 +148,19 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             value: 'https://maps.arcgis.com',
         }) || '';
 
-
         // standardize url
         url = url.replace(/(https?:\/\/|\/?rest\/sharing)/g, '');
         if(url.lastIndexOf('/') === url.length - 1){
             url = url.substring(0, url.length - 1);
         }
-
         if(!url){
             return;
         }
-
         url = `https://${url}`;
-
 
         // get appId from user
         const appId : string | undefined = await window.showInputBox({
+            ignoreFocusOut: true,
             placeHolder: 'Enter appId - for Portal (optional)',
             prompt: 'abc123',
             value: '',
@@ -176,17 +173,19 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
 
         this.logger(`Creating new portal connection to url: ${url}, app: ${appId}`)
         const connection = new PortalConnection({portal: url, appId});
-        await connection.authenticate();
-        this.logger(`Authentication successful. Username: ${connection.authentication.username}`)
-
         this.portals.push({
             title: connection.portal,
             connection,
             type: ArcGISType.Portal,
             id: connection.portal,
         });
+        this.refreshItem();
 
-		this.refreshItem();
+        return connection.authenticate().then(() => {
+            this.logger(`Authentication successful. Username: ${connection.authentication.username}`)
+        }).catch(e => {
+            this.logger(`Error while authenticating: `, e);
+        })
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -344,11 +343,13 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             placeHolder: 'My sweet app',
             prompt: 'Application Name',
             value: '',
+            ignoreFocusOut: true,
         })
         const descripton = await window.showInputBox({
             placeHolder: 'My sweet app',
             prompt: 'Description',
             value: '',
+            ignoreFocusOut: true,
         }) 
         const type = await window.showQuickPick([
             ...APP_TYPES,
@@ -358,12 +359,14 @@ export class ArcGISTreeProvider implements TreeDataProvider<ArcGISItem> {
             placeHolder: 'app',
             prompt: 'Application Tags',
             value: 'app',
+            ignoreFocusOut: true,
         })
 
         const url = APP_TYPES.includes(type || '') ? await window.showInputBox({
             placeHolder: 'https://my.app.com/?id={}',
             prompt: 'Enter URL. Use {} to substitute item ID after it is created',
             value: '',
+            ignoreFocusOut: true,
         }) : undefined;
 
         const item : any = {

@@ -109,23 +109,10 @@ export default class PortalConnection {
 
     public authenticate() : Promise<UserSession>{
         if(typeof this.authentication === 'undefined'){
-            this.authenticationPromise = new Promise((resolve, reject) => {
-                authenticate({
-                    appId: this.appId,
-                    portalUrl: this.restURL,
-                }).then(resolve);
-                setTimeout(() => {
-                    reject(new Error('Timeout Exceeded'));
-                }, 1000 * 120);
-            });
+            this.authenticationPromise = this.getAuthPromise();
         }
         return this.authenticationPromise
             .then(result => this.authentication = result)
-            .catch(e => {
-                console.error(e);
-                delete this.authenticationPromise;
-                return this.authenticate();
-            });
     }
 
     public async getFolders(username? : string) : Promise<any[]>{
@@ -252,6 +239,19 @@ export default class PortalConnection {
         });
     }
 
+    private getAuthPromise() : Promise<UserSession> {
+        return new Promise((resolve, reject) => {
+            authenticate({
+                appId: this.appId,
+                portalUrl: this.restURL,
+            })
+            .then(resolve)
+            .catch((e: any) => reject(e));
+            setTimeout(() => {
+                reject(new Error('Timeout Exceeded'));
+            }, 1000 * 120);
+        });
+    }
     private getSafeData(data: any){
         if(typeof data === 'object'){
             return JSON.stringify(data);
