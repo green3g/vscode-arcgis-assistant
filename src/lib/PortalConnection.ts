@@ -1,4 +1,4 @@
-import {authenticate} from 'arcgis-node-util/src/auth/oauth';
+import {authenticate} from 'arcgis-node-util/lib/auth/oauth';
 import {
     searchItems, SearchQueryBuilder, ISearchOptions,
     IItem, getItem,getItemData, updateItem, createItem, removeItem, getUser, searchUsers,
