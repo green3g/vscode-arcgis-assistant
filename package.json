@@ -3,7 +3,7 @@
   "displayName": "ArcGIS Assistant",
   "description": "A tool for modifying ArcGIS Enterprise and Online items",
   "version": "2.3.2",
-  "publisher": "roemhildtg",
+  "publisher": "roemhildtg0196",
   "repository": "https://github.com/roemhildtg/vscode-arcgis-assistant",
   "config": {
     "PORT": 3000,
